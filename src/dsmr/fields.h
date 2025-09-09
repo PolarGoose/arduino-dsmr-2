@@ -1,33 +1,3 @@
-/**
- * Arduino DSMR parser.
- *
- * This software is licensed under the MIT License.
- *
- * Copyright (c) 2015 Matthijs Kooijman <matthijs@stdin.nl>
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
- * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
- * Field parsing functions
- */
-
 #pragma once
 
 #include "util.h"
@@ -66,7 +36,7 @@ namespace dsmr
   {
     ParseResult<void> parse(const char *str, const char *end)
     {
-      ParseResult<String> res = StringParser::parse_string(minlen, maxlen, str, end);
+      ParseResult<std::string> res = StringParser::parse_string(minlen, maxlen, str, end);
       if (!res.err)
         static_cast<T *>(this)->val() = res.result;
       return res;
@@ -91,9 +61,9 @@ namespace dsmr
   // FixedField return the corresponding units for these values.
   struct FixedValue
   {
-    operator float() { return val(); }
-    float val() { return _value / 1000.0; }
-    uint32_t int_val() { return _value; }
+    operator float() const { return val(); }
+    float val() const { return _value / 1000.0; }
+    uint32_t int_val() const { return _value; }
 
     uint32_t _value;
   };
@@ -135,7 +105,7 @@ namespace dsmr
 
   struct TimestampedFixedValue : public FixedValue
   {
-    String timestamp;
+    std::string timestamp;
   };
 
   // Some numerical values are prefixed with a timestamp. This is simply
@@ -146,7 +116,7 @@ namespace dsmr
     ParseResult<void> parse(const char *str, const char *end)
     {
       // First, parse timestamp
-      ParseResult<String> res = StringParser::parse_string(13, 13, str, end);
+      ParseResult<std::string> res = StringParser::parse_string(13, 13, str, end);
       if (res.err)
         return res;
 
@@ -167,7 +137,7 @@ namespace dsmr
       // we parse last entry 2 times
       const char *last = end;
 
-      ParseResult<String> res;
+      ParseResult<std::string> res;
       res.next = str;
 
       while (res.next != end)
@@ -206,45 +176,37 @@ namespace dsmr
     ParseResult<void> parse(const char *str, const char *end)
     {
       // Just copy the string verbatim value without any parsing
-      concat_hack(static_cast<T *>(this)->val(), str, end - str);
+      static_cast<T *>(this)->val().append(str, end - str);
       return ParseResult<void>().until(end);
     }
   };
 
   namespace fields
   {
-
     struct units
     {
-      // These variables are inside a struct, since that allows us to make
-      // them constexpr and define their values here, but define the storage
-      // in a cpp file. Global const(expr) variables have implicitly
-      // internal linkage, meaning each cpp file that includes us will have
-      // its own copy of the variable. Since we take the address of these
-      // variables (passing it as a template argument), this would cause a
-      // compiler warning. By putting these in a struct, this is prevented.
-      static constexpr char none[] = "";
-      static constexpr char kWh[] = "kWh";
-      static constexpr char Wh[] = "Wh";
-      static constexpr char kW[] = "kW";
-      static constexpr char W[] = "W";
-      static constexpr char kV[] = "kV";
-      static constexpr char V[] = "V";
-      static constexpr char mV[] = "mV";
-      static constexpr char kA[] = "kA";
-      static constexpr char A[] = "A";
-      static constexpr char mA[] = "mA";
-      static constexpr char m3[] = "m3";
-      static constexpr char dm3[] = "dm3";
-      static constexpr char GJ[] = "GJ";
-      static constexpr char MJ[] = "MJ";
-      static constexpr char kvar[] = "kvar";
-      static constexpr char kvarh[] = "kvarh";
-      static constexpr char kVA[] = "kVA";
-      static constexpr char VA[] = "VA";
-      static constexpr char s[] = "s";
-      static constexpr char Hz[] ="Hz";
-      static constexpr char kHz[] ="kHz";
+      static inline constexpr char none[] = "";
+      static inline constexpr char kWh[] = "kWh";
+      static inline constexpr char Wh[] = "Wh";
+      static inline constexpr char kW[] = "kW";
+      static inline constexpr char W[] = "W";
+      static inline constexpr char kV[] = "kV";
+      static inline constexpr char V[] = "V";
+      static inline constexpr char mV[] = "mV";
+      static inline constexpr char kA[] = "kA";
+      static inline constexpr char A[] = "A";
+      static inline constexpr char mA[] = "mA";
+      static inline constexpr char m3[] = "m3";
+      static inline constexpr char dm3[] = "dm3";
+      static inline constexpr char GJ[] = "GJ";
+      static inline constexpr char MJ[] = "MJ";
+      static inline constexpr char kvar[] = "kvar";
+      static inline constexpr char kvarh[] = "kvarh";
+      static inline constexpr char kVA[] = "kVA";
+      static inline constexpr char VA[] = "VA";
+      static inline constexpr char s[] = "s";
+      static inline constexpr char Hz[] ="Hz";
+      static inline constexpr char kHz[] ="kHz";
     };
 
     const uint8_t GAS_MBUS_ID = DSMR_GAS_MBUS_ID;
@@ -252,31 +214,31 @@ namespace dsmr
     const uint8_t THERMAL_MBUS_ID = DSMR_THERMAL_MBUS_ID;
     const uint8_t SUB_MBUS_ID = DSMR_SUB_MBUS_ID;
 
-#define DEFINE_FIELD(fieldname, value_t, obis, field_t, field_args...) \
-  struct fieldname : field_t<fieldname, ##field_args>                  \
+#define DEFINE_FIELD(fieldname, value_t, obis, field_t, ...)           \
+  struct fieldname : field_t<fieldname, ##__VA_ARGS__>     \
   {                                                                    \
     value_t fieldname;                                                 \
     bool fieldname##_present = false;                                  \
-    static constexpr ObisId id = obis;                                 \
-    static constexpr char name[] = #fieldname;                         \
+    static inline constexpr ObisId id = obis;                                 \
+    static inline constexpr char name[] = #fieldname;                         \
     value_t &val() { return fieldname; }                               \
     bool &present() { return fieldname##_present; }                    \
   }
 
     /* Meter identification. This is not a normal field, but a
  * specially-formatted first line of the message */
-    DEFINE_FIELD(identification, String, ObisId(255, 255, 255, 255, 255, 255), RawField);
+    DEFINE_FIELD(identification, std::string, ObisId(255, 255, 255, 255, 255, 255), RawField);
 
     /* Version information for P1 output */
-    DEFINE_FIELD(p1_version, String, ObisId(1, 3, 0, 2, 8), StringField, 2, 2);
-    DEFINE_FIELD(p1_version_be, String, ObisId(0, 0, 96, 1, 4), StringField, 2, 96);
-    DEFINE_FIELD(p1_version_ch, String, ObisId(0, 0, 96, 1, 4), StringField, 2, 96);
+    DEFINE_FIELD(p1_version, std::string, ObisId(1, 3, 0, 2, 8), StringField, 2, 2);
+    DEFINE_FIELD(p1_version_be, std::string, ObisId(0, 0, 96, 1, 4), StringField, 2, 96);
+    DEFINE_FIELD(p1_version_ch, std::string, ObisId(0, 0, 96, 1, 4), StringField, 2, 96);
 
     /* Date-time stamp of the P1 message */
-    DEFINE_FIELD(timestamp, String, ObisId(0, 0, 1, 0, 0), TimestampField);
+    DEFINE_FIELD(timestamp, std::string, ObisId(0, 0, 1, 0, 0), TimestampField);
 
     /* Equipment identifier */
-    DEFINE_FIELD(equipment_id, String, ObisId(0, 0, 96, 1, 1), StringField, 0, 96);
+    DEFINE_FIELD(equipment_id, std::string, ObisId(0, 0, 96, 1, 1), StringField, 0, 96);
 
     /* Meter Reading electricity delivered to client (Special for Lux) in 0,001 kWh */
     /* TODO: by OBIS 1-0:1.8.0.255 IEC 62056 it should be Positive active energy (A+) total [kWh], should we rename it? */
@@ -338,7 +300,7 @@ namespace dsmr
     /* Tariff indicator electricity. The tariff indicator can also be used
  * to switch tariff dependent loads e.g boilers. This is the
  * responsibility of the P1 user */
-    DEFINE_FIELD(electricity_tariff, String, ObisId(0, 0, 96, 14, 0), StringField, 4, 4);
+    DEFINE_FIELD(electricity_tariff, std::string, ObisId(0, 0, 96, 14, 0), StringField, 4, 4);
 
     /* Actual electricity power delivered (+P) in 1 Watt resolution */
     DEFINE_FIELD(power_delivered, FixedValue, ObisId(1, 0, 1, 7, 0), FixedField, units::kW, units::W);
@@ -371,7 +333,7 @@ namespace dsmr
     DEFINE_FIELD(electricity_long_failures, uint32_t, ObisId(0, 0, 96, 7, 9), IntField, units::none);
 
     /* Power Failure Event Log (long power failures) */
-    DEFINE_FIELD(electricity_failure_log, String, ObisId(1, 0, 99, 97, 0), RawField);
+    DEFINE_FIELD(electricity_failure_log, std::string, ObisId(1, 0, 99, 97, 0), RawField);
 
     /* Number of voltage sags in phase L1 */
     DEFINE_FIELD(electricity_sags_l1, uint32_t, ObisId(1, 0, 32, 32, 0), IntField, units::none);
@@ -405,10 +367,10 @@ namespace dsmr
 
     /* Text message codes: numeric 8 digits (Note: Missing from 5.0 spec)
  * */
-    DEFINE_FIELD(message_short, String, ObisId(0, 0, 96, 13, 1), StringField, 0, 16);
+    DEFINE_FIELD(message_short, std::string, ObisId(0, 0, 96, 13, 1), StringField, 0, 16);
     /* Text message max 2048 characters (Note: Spec says 1024 in comment and
  * 2048 in format spec, so we stick to 2048). */
-    DEFINE_FIELD(message_long, String, ObisId(0, 0, 96, 13, 0), StringField, 0, 2048);
+    DEFINE_FIELD(message_long, std::string, ObisId(0, 0, 96, 13, 0), StringField, 0, 2048);
 
     /* Instantaneous voltage L1 in 0.1V resolution (Note: Spec says V
  * resolution in comment, but 0.1V resolution in format spec. Added in
@@ -516,9 +478,9 @@ namespace dsmr
     DEFINE_FIELD(gas_device_type, uint16_t, ObisId(0, GAS_MBUS_ID, 24, 1, 0), IntField, units::none);
 
     /* Equipment identifier (Gas) */
-    DEFINE_FIELD(gas_equipment_id, String, ObisId(0, GAS_MBUS_ID, 96, 1, 0), StringField, 0, 96);
+    DEFINE_FIELD(gas_equipment_id, std::string, ObisId(0, GAS_MBUS_ID, 96, 1, 0), StringField, 0, 96);
     /* Equipment identifier (Gas) BE */
-    DEFINE_FIELD(gas_equipment_id_be, String, ObisId(0, GAS_MBUS_ID, 96, 1, 1), StringField, 0, 96);
+    DEFINE_FIELD(gas_equipment_id_be, std::string, ObisId(0, GAS_MBUS_ID, 96, 1, 1), StringField, 0, 96);
 
     /* Valve position Gas (on/off/released) (Note: Removed in 4.0.7 / 4.2.2 / 5.0). */
     DEFINE_FIELD(gas_valve_position, uint8_t, ObisId(0, GAS_MBUS_ID, 24, 4, 0), IntField, units::none);
@@ -531,13 +493,13 @@ namespace dsmr
     /* _BE */
     DEFINE_FIELD(gas_delivered_be, TimestampedFixedValue, ObisId(0, GAS_MBUS_ID, 24, 2, 3), TimestampedFixedField,
                  units::m3, units::dm3);
-    DEFINE_FIELD(gas_delivered_text, String, ObisId(0, GAS_MBUS_ID, 24, 3, 0), RawField);
+    DEFINE_FIELD(gas_delivered_text, std::string, ObisId(0, GAS_MBUS_ID, 24, 3, 0), RawField);
 
     /* Device-Type */
     DEFINE_FIELD(thermal_device_type, uint16_t, ObisId(0, THERMAL_MBUS_ID, 24, 1, 0), IntField, units::none);
 
     /* Equipment identifier (Thermal: heat or cold) */
-    DEFINE_FIELD(thermal_equipment_id, String, ObisId(0, THERMAL_MBUS_ID, 96, 1, 0), StringField, 0, 96);
+    DEFINE_FIELD(thermal_equipment_id, std::string, ObisId(0, THERMAL_MBUS_ID, 96, 1, 0), StringField, 0, 96);
 
     /* Valve position (on/off/released) (Note: Removed in 4.0.7 / 4.2.2 / 5.0). */
     DEFINE_FIELD(thermal_valve_position, uint8_t, ObisId(0, THERMAL_MBUS_ID, 24, 4, 0), IntField, units::none);
@@ -551,7 +513,7 @@ namespace dsmr
     DEFINE_FIELD(water_device_type, uint16_t, ObisId(0, WATER_MBUS_ID, 24, 1, 0), IntField, units::none);
 
     /* Equipment identifier (Thermal: heat or cold) */
-    DEFINE_FIELD(water_equipment_id, String, ObisId(0, WATER_MBUS_ID, 96, 1, 0), StringField, 0, 96);
+    DEFINE_FIELD(water_equipment_id, std::string, ObisId(0, WATER_MBUS_ID, 96, 1, 0), StringField, 0, 96);
 
     /* Valve position (on/off/released) (Note: Removed in 4.0.7 / 4.2.2 / 5.0). */
     DEFINE_FIELD(water_valve_position, uint8_t, ObisId(0, WATER_MBUS_ID, 24, 4, 0), IntField, units::none);
@@ -565,7 +527,7 @@ namespace dsmr
     DEFINE_FIELD(sub_device_type, uint16_t, ObisId(0, SUB_MBUS_ID, 24, 1, 0), IntField, units::none);
 
     /* Equipment identifier (Thermal: heat or cold) */
-    DEFINE_FIELD(sub_equipment_id, String, ObisId(0, SUB_MBUS_ID, 96, 1, 0), StringField, 0, 96);
+    DEFINE_FIELD(sub_equipment_id, std::string, ObisId(0, SUB_MBUS_ID, 96, 1, 0), StringField, 0, 96);
 
     /* Valve position (on/off/released) (Note: Removed in 4.0.7 / 4.2.2 / 5.0). */
     DEFINE_FIELD(sub_valve_position, uint8_t, ObisId(0, SUB_MBUS_ID, 24, 4, 0), IntField, units::none);
@@ -597,10 +559,10 @@ namespace dsmr
 
     /* Image Core Version and checksum */
     DEFINE_FIELD(fw_core_version, FixedValue, ObisId(1, 0, 0, 2, 0), FixedField, units::none, units::none);
-    DEFINE_FIELD(fw_core_checksum, String, ObisId(1, 0, 0, 2, 8), StringField, 0, 8);
+    DEFINE_FIELD(fw_core_checksum, std::string, ObisId(1, 0, 0, 2, 8), StringField, 0, 8);
     /* Image Module Version and checksum */
     DEFINE_FIELD(fw_module_version, FixedValue, ObisId(1, 1, 0, 2, 0), FixedField, units::none, units::none);
-    DEFINE_FIELD(fw_module_checksum, String, ObisId(1, 1, 0, 2, 8), StringField, 0, 8);
+    DEFINE_FIELD(fw_module_checksum, std::string, ObisId(1, 1, 0, 2, 8), StringField, 0, 8);
       
   } // namespace fields
 

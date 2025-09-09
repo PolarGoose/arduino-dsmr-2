@@ -1,59 +1,13 @@
-/**
- * Arduino DSMR parser.
- *
- * This software is licensed under the MIT License.
- *
- * Copyright (c) 2015 Matthijs Kooijman <matthijs@stdin.nl>
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
- * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
- * Various utility functions
- */
-
 #pragma once
 
-#include <Arduino.h>
+#include <utility>
+#include <string>
+#include <cstdint>
+#include <cstring>
+#include <algorithm>
 
 namespace dsmr
 {
-
-  /**
- * Small utility to get the length of an array at compiletime.
- */
-  template <typename T, unsigned int sz>
-  inline unsigned int lengthof(const T (&)[sz]) { return sz; }
-
-  // Hack until https://github.com/arduino/Arduino/pull/1936 is merged.
-  // This appends the given number of bytes from the given C string to the
-  // given Arduino string, without requiring a trailing NUL.
-  // Requires that there _is_ room for nul-termination
-  static void concat_hack(String &s, const char *append, size_t n)
-  {
-    // Add null termination. Inefficient, but it works...
-    char buf[n + 1];
-    memcpy(buf, append, n);
-    buf[n] = 0;
-    s.concat(buf);
-  }
-
   /**
  * The ParseResult<T> class wraps the result of a parse function. The type
  * of the result is passed as a template parameter and can be void to
@@ -91,33 +45,26 @@ namespace dsmr
   {
     T result;
 
-    P &succeed(T &result)
-    {
-      this->result = result;
-      return *static_cast<P *>(this);
-    }
-    P &succeed(T &&result)
-    {
-      this->result = result;
-      return *static_cast<P *>(this);
+    template <class U>
+    P& succeed(U&& value) {
+      result = std::forward<U>(value);
+      return *static_cast<P*>(this);
     }
   };
 
   // partial specialization for void result
   template <typename P>
-  struct _ParseResult<P, void>
-  {
-  };
+  struct _ParseResult<P, void> { };
 
   // Actual ParseResult class
   template <typename T>
   struct ParseResult : public _ParseResult<ParseResult<T>, T>
   {
-    const char *next = NULL;
-    const char *err = NULL;
-    const char *ctx = NULL;
+    const char *next = nullptr;
+    const char *err = nullptr;
+    const char *ctx = nullptr;
 
-    ParseResult &fail(const char *err, const char *ctx = NULL)
+    ParseResult &fail(const char *err, const char *ctx = nullptr)
     {
       this->err = err;
       this->ctx = ctx;
@@ -129,7 +76,6 @@ namespace dsmr
       return *this;
     }
     ParseResult() = default;
-    ParseResult(const ParseResult &other) = default;
 
     template <typename T2>
     ParseResult(const ParseResult<T2> &other) : next(other.next), err(other.err), ctx(other.ctx) {}
@@ -140,9 +86,9 @@ namespace dsmr
    * characters in the total parsed string. These are needed to properly
    * limit the context output.
    */
-    String fullError(const char *start, const char *end) const
+    std::string fullError(const char *start, const char *end) const
     {
-      String res;
+      std::string res;
       if (this->ctx && start && end)
       {
         // Find the entire line surrounding the context
@@ -158,7 +104,8 @@ namespace dsmr
         res.reserve((line_end - line_start) + 2 + (this->ctx - line_start) + 1 + 2);
 
         // Write the line
-        concat_hack(res, line_start, line_end - line_start);
+        res.append(line_start, line_end - line_start);
+
         res += "\r\n";
 
         // Write a marker to point out ctx

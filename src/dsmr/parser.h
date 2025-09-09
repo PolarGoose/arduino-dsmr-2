@@ -1,40 +1,28 @@
-/**
- * Arduino DSMR parser.
- *
- * This software is licensed under the MIT License.
- *
- * Copyright (c) 2015 Matthijs Kooijman <matthijs@stdin.nl>
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
- * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
- * Message parsing core
- */
-
 #pragma once
 
-#include "crc16.h"
 #include "util.h"
 
 namespace dsmr
 {
+  // uses polynomial x^16+x^15+x^2+1
+  static uint16_t crc16_update(uint16_t crc, uint8_t data)
+  {
+    unsigned int i;
+
+    crc ^= data;
+    for (i = 0; i < 8; ++i)
+    {
+      if (crc & 1)
+      {
+        crc = (crc >> 1) ^ 0xA001;
+      }
+      else
+      {
+        crc = (crc >> 1);
+      }
+    }
+    return crc;
+  }
 
   /**
  * ParsedData is a template for the result of parsing a Dsmr P1 message.
@@ -69,8 +57,7 @@ namespace dsmr
   template <>
   struct ParsedData<>
   {
-    ParseResult<void> __attribute__((__always_inline__))
-    parse_line_inlined(const ObisId & /* id */, const char *str, const char * /* end */)
+    ParseResult<void> parse_line(const ObisId & /* id */, const char *str, const char * /* end */)
     {
       // Parsing succeeded, but found no matching handler (so return
       // set the next pointer to show nothing was parsed).
@@ -78,12 +65,12 @@ namespace dsmr
     }
 
     template <typename F>
-    void __attribute__((__always_inline__)) applyEach_inlined(F && /* f */)
+    void applyEach(F && /* f */)
     {
       // Nothing to do
     }
 
-    bool all_present_inlined() { return true; }
+    bool all_present() { return true; }
   };
 
   /**
@@ -100,17 +87,6 @@ namespace dsmr
    */
     ParseResult<void> parse_line(const ObisId &id, const char *str, const char *end)
     {
-      return parse_line_inlined(id, str, end);
-    }
-
-    /**
-   * always_inline version of parse_line. This is a separate method, to
-   * allow recursively inlining all calls, but still have a non-inlined
-   * top-level parse_line method.
-   */
-    ParseResult<void> __attribute__((__always_inline__))
-    parse_line_inlined(const ObisId &id, const char *str, const char *end)
-    {
       if (id == T::id)
       {
         if (T::present())
@@ -118,32 +94,27 @@ namespace dsmr
         T::present() = true;
         return T::parse(str, end);
       }
-      return ParsedData<Ts...>::parse_line_inlined(id, str, end);
+      return ParsedData<Ts...>::parse_line(id, str, end);
     }
 
     template <typename F>
-    void applyEach(F &&f) { applyEach_inlined(f); }
-
-    template <typename F>
-    void __attribute__((__always_inline__)) applyEach_inlined(F &&f)
+    void applyEach(F &&f)
     {
       T::apply(f);
-      return ParsedData<Ts...>::applyEach_inlined(f);
+      return ParsedData<Ts...>::applyEach(f);
     }
 
     /**
    * Returns true when all defined fields are present.
    */
-    bool all_present() { return all_present_inlined(); }
-
-    bool all_present_inlined() { return T::present() && ParsedData<Ts...>::all_present_inlined(); }
+    bool all_present() { return T::present() && ParsedData<Ts...>::all_present(); }
   };
 
   struct StringParser
   {
-    static ParseResult<String> parse_string(size_t min, size_t max, const char *str, const char *end)
+    static ParseResult<std::string> parse_string(size_t min, size_t max, const char *str, const char *end)
     {
-      ParseResult<String> res;
+      ParseResult<std::string> res;
       if (str >= end || *str != '(')
         return res.fail("Missing (", str);
 
@@ -160,15 +131,12 @@ namespace dsmr
       if (len < min || len > max)
         return res.fail("Invalid string length", str_start);
 
-      concat_hack(res.result, str_start, len);
+      res.result.append(str_start, len);
 
       return res.until(str_end + 1); // Skip )
     }
   };
 
-  // Do not use F() for multiply-used strings (including strings used from
-  // multiple template instantiations), that would result in multiple
-  // instances of the string in the binary
   static constexpr char INVALID_NUMBER[] = "Invalid number";
   static constexpr char INVALID_UNIT[] = "Invalid unit";
 
@@ -200,8 +168,9 @@ namespace dsmr
       {
         ++num_end;
 
-        while (num_end < end && !strchr("*)", *num_end) && max_decimals--)
+        while (num_end < end && !strchr("*)", *num_end) && max_decimals)
         {
+          max_decimals--;
           if (*num_end < '0' || *num_end > '9')
             return res.fail(INVALID_NUMBER, num_end);
           value *= 10;
@@ -214,6 +183,8 @@ namespace dsmr
       while (max_decimals--)
         value *= 10;
 
+      // If a unit was passed, check that the unit in the messages
+      // messages the unit passed.
       if (unit && *unit)
       {
         if (num_end >= end || *num_end != '*')
@@ -221,9 +192,11 @@ namespace dsmr
         const char *unit_start = ++num_end; // skip *
         while (num_end < end && *num_end != ')' && *unit)
         {
-          if (tolower(*num_end++) != tolower(*unit++))
+          // Next character in units do not match?
+          if (std::tolower(static_cast<unsigned char>(*num_end++)) != std::tolower(static_cast<unsigned char>(*unit++)))
             return res.fail(INVALID_UNIT, unit_start);
         }
+        // At the end of the message unit, but not the passed unit?
         if (*unit)
           return res.fail(INVALID_UNIT, unit_start);
       }
@@ -288,32 +261,39 @@ namespace dsmr
 
   struct CrcParser
   {
+  private:
     static const size_t CRC_LEN = 4;
+
+    static bool hex_nibble(char c, uint8_t& out)
+    {
+      if (c >= '0' && c <= '9') { out = static_cast<uint8_t>(c - '0'); return true; }
+      if (c >= 'A' && c <= 'F') { out = static_cast<uint8_t>(c - 'A' + 10); return true; }
+      if (c >= 'a' && c <= 'f') { out = static_cast<uint8_t>(c - 'a' + 10); return true; }
+      return false;
+    }
+
+  public:
 
     // Parse a crc value. str must point to the first of the four hex
     // bytes in the CRC.
-    static ParseResult<uint16_t> parse(const char *str, const char *end)
+    static ParseResult<uint16_t> parse(const char* str, const char* end)
     {
       ParseResult<uint16_t> res;
-      // This should never happen with the code in this library, but
-      // check anyway
+
       if (str + CRC_LEN > end)
         return res.fail("No checksum found", str);
 
-      // A bit of a messy way to parse the checksum, but all
-      // integer-parse functions assume nul-termination
-      char buf[CRC_LEN + 1];
-      memcpy(buf, str, CRC_LEN);
-      buf[CRC_LEN] = '\0';
-      char *endp;
-      uint16_t check = strtoul(buf, &endp, 16);
-
-      // See if all four bytes formed a valid number
-      if (endp != buf + CRC_LEN)
-        return res.fail("Incomplete or malformed checksum", str);
+      uint16_t value = 0;
+      for (size_t i = 0; i < CRC_LEN; ++i)
+      {
+        uint8_t nibble;
+        if (!hex_nibble(str[i], nibble))
+          return res.fail("Incomplete or malformed checksum", str + i);
+        value = static_cast<uint16_t>((value << 4) | nibble);
+      }
 
       res.next = str + CRC_LEN;
-      return res.succeed(check);
+      return res.succeed(value);
     }
   };
 
@@ -326,54 +306,51 @@ namespace dsmr
    * pointer in the result will indicate the next unprocessed byte.
    */
     template <typename... Ts>
-    static ParseResult<void> parse(ParsedData<Ts...> *data, const char *str, size_t n, bool unknown_error = false,
-                                   bool check_crc = true)
+    static ParseResult<void> parse(ParsedData<Ts...> *data, const char *str, size_t n, bool unknown_error = false, bool check_crc = true)
     {
       ParseResult<void> res;
-      if (!n || str[0] != '/')
-        return res.fail("Data should start with /", str);
 
-      // Skip /
-      const char *data_start = str + 1;
+      const char* const buf_begin = str;
+      const char* const buf_end = str + n;
 
-      // Look for ! that terminates the data
-      const char *data_end = data_start;
+      if (!n || *buf_begin != '/')
+        return res.fail("Data should start with /", buf_begin);
+
+      // The payload starts after '/', and runs up to (but not including) '!'
+      const char* const data_begin = buf_begin + 1;
+
+      // Find the terminating '!' (or the end of buffer if not present)
+      const char* term = std::find(data_begin, buf_end, '!');
+      if(term == buf_end)
+        return res.fail("Data should end with !");
+
       if (check_crc)
       {
-        uint16_t crc = _crc16_update(0, *str); // Include the / in CRC
-        while (data_end < str + n && *data_end != '!')
-        {
-          crc = _crc16_update(crc, *data_end);
-          ++data_end;
-        }
-        if (data_end >= str + n)
-          return res.fail("No checksum found", data_end);
+        // With CRC enabled, '!' must exist and be followed by 4 hex chars.
+        if (term >= buf_end)
+          return res.fail("No checksum found", term);
 
-        crc = _crc16_update(crc, *data_end); // Include the ! in CRC
+        // Compute CRC over '/' .. '!' (inclusive).
+        uint16_t crc = 0;
+        for (const char* p = buf_begin; p <= term; ++p)
+          crc = crc16_update(crc, static_cast<uint8_t>(*p));
 
-        ParseResult<uint16_t> check_res = CrcParser::parse(data_end + 1, str + n);
-        if (check_res.err)
-          return check_res;
+        // Parse and verify the 4-hex checksum after '!'
+        ParseResult<uint16_t> check = CrcParser::parse(term + 1, buf_end);
+        if (check.err)
+          return check;
+        if (check.result != crc)
+          return res.fail("Checksum mismatch", term + 1);
 
-        // Check CRC
-        if (check_res.result != crc)
-        {
-          return res.fail("Checksum mismatch", data_end + 1);
-        }
-        res = parse_data(data, data_start, data_end, unknown_error);
-        res.next = check_res.next;
-      }
-      else
-      {
-        while (data_end < str + n && *data_end != '!')
-        {
-          ++data_end;
-        }
-
-        res = parse_data(data, data_start, data_end, unknown_error);
-        res.next = data_end;
+        // Parse payload (between '/' and '!')
+        res = parse_data(data, data_begin, term, unknown_error);
+        res.next = check.next; // Advance past checksum
+        return res;
       }
 
+      // No CRC checking: parse up to '!' if present, otherwise up to buf_end.
+      res = parse_data(data, data_begin, term, unknown_error);
+      res.next = (term < buf_end) ? term : buf_end;
       return res;
     }
 
@@ -386,7 +363,6 @@ namespace dsmr
     static ParseResult<void> parse_data(ParsedData<Ts...> *data, const char *str, const char *end,
                                         bool unknown_error = false)
     {
-      ParseResult<void> res;
       // Split into lines and parse those
       const char *line_end = str, *line_start = str;
 
@@ -398,15 +374,17 @@ namespace dsmr
           // The first identification line looks like:
           // XXX5<id string>
           // The DSMR spec is vague on details, but in 62056-21, the X's
-          // are a three-leter (registerd) manufacturer ID, the id
+          // are a three-letter (registerd) manufacturer ID, the id
           // string is up to 16 chars of arbitrary characters and the
           // '5' is a baud rate indication. 5 apparently means 9600,
           // which DSMR 3.x and below used. It seems that DSMR 2.x
           // passed '3' here (which is mandatory for "mode D"
           // communication according to 62956-21), so we also allow
-          // that.
-          if (line_start + 3 >= line_end || (line_start[3] != '5' && line_start[3] != '3'))
-            return res.fail("Invalid identification string", line_start);
+          // that. Apparently swedish meters use '9' for 115200. This code
+          // used to check the format of the line somewhat, but for
+          // flexibility (and since we do not actually parse the contents
+          // of the line anyway), just allow anything now.
+          //
           // Offer it for processing using the all-ones Obis ID, which
           // is not otherwise valid.
           ParseResult<void> tmp = data->parse_line(ObisId(255, 255, 255, 255, 255, 255), line_start, line_end);
@@ -432,9 +410,9 @@ namespace dsmr
       }
 
       if (line_end != line_start)
-        return res.fail("Last dataline not CRLF terminated", line_end);
+        return ParseResult<void>().fail("Last dataline not CRLF terminated", line_end);
 
-      return res;
+      return ParseResult<void>();
     }
 
     template <typename Data>

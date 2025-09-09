@@ -134,37 +134,37 @@ TEST_CASE("Should parse all fields in the DSMR message correctly") {
 }
 
 TEST_CASE("Should report an error if the crc has incorrect format") {
-  const auto& dsmr_message = "/KFM5KAIFA-METER\r\n"
-                             "\r\n"
-                             "1-0:1.8.1(000671.578*kWh)\r\n"
-                             "1-0:1.7.0(00.318*kW)\r\n"
-                             "!1ED\r\n";
+  const auto& msg = "/KFM5KAIFA-METER\r\n"
+                    "\r\n"
+                    "1-0:1.8.1(000671.578*kWh)\r\n"
+                    "1-0:1.7.0(00.318*kW)\r\n"
+                    "!1ED\r\n";
 
   ParsedData<
       /* String */ identification,
       /* FixedValue */ power_delivered>
       data;
 
-  auto res = P1Parser::parse(&data, dsmr_message, std::size(dsmr_message), true);
+  auto res = P1Parser::parse(&data, msg, std::size(msg), true);
   REQUIRE(std::string(res.err) == "Incomplete or malformed checksum");
 }
 
 TEST_CASE("Should report an error if the crc of a package is incorrect") {
-  const auto& dsmr_message = "/KFM5KAIFA-METER\r\n"
-                             "\r\n"
-                             "1-0:.8.1(000671.578*kWh)\r\n"
-                             "1-0:1.7.0(00.318*kW)\r\n"
-                             "!1E1D\r\n";
+  const auto& msg = "/KFM5KAIFA-METER\r\n"
+                    "\r\n"
+                    "1-0:.8.1(000671.578*kWh)\r\n"
+                    "1-0:1.7.0(00.318*kW)\r\n"
+                    "!1E1D\r\n";
 
   ParsedData<
       /* String */ identification,
       /* FixedValue */ power_delivered>
       data;
 
-  auto res = P1Parser::parse(&data, dsmr_message, std::size(dsmr_message), true);
+  auto res = P1Parser::parse(&data, msg, std::size(msg), true);
   REQUIRE(std::string(res.err) == "Checksum mismatch");
 
-  const auto& fullError = res.fullError(dsmr_message, dsmr_message + std::size(dsmr_message));
+  const auto& fullError = res.fullError(msg, msg + std::size(msg));
   std::cout << "Full error" << std::endl << fullError << std::endl;
   REQUIRE(fullError == "!1E1D\r\n ^\r\nChecksum mismatch");
 }
@@ -559,10 +559,21 @@ TEST_CASE("Numeric without decimals is accepted (auto-padded)") {
   const auto& msg = "/AAA5MTR\r\n"
                     "\r\n"
                     "1-0:1.7.0(1*kW)\r\n"
-                    "!\r\n";
+                    "!";
 
   ParsedData</*String*/ identification, /*FixedValue*/ power_delivered> data;
   auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(res.err == nullptr);
   REQUIRE(data.power_delivered == 1.0f);
+}
+
+TEST_CASE("Can parse a dataline if it has a break in the middle") {
+  const auto& msg = "/KMP5 ZABF000000000000\r\n"
+                    "0-1:24.3.0(120517020000)(08)(60)(1)(0-1:24.2.1)(m3)\r\n"
+                    "(00124.477)\r\n"
+                    "!";
+
+  ParsedData<identification, gas_delivered_text, message_long> data;
+  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  REQUIRE(data.gas_delivered_text == "(120517020000)(08)(60)(1)(0-1:24.2.1)(m3)\r\n(00124.477)");
 }

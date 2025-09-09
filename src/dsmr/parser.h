@@ -349,10 +349,16 @@ struct P1Parser {
     // Parse data lines
     while (line_end < end) {
       if (*line_end == '\r' || *line_end == '\n') {
-        ParseResult<void> tmp = parse_line(data, line_start, line_end, unknown_error);
-        if (tmp.err)
-          return tmp;
-        line_start = line_end + 1;
+
+        // Workaround for https://github.com/matthijskooijman/arduino-dsmr/issues/22
+        // DSMR v3 allows CRLF in the middle of a data line
+        const auto& isBreakInTheMiddleOfTheDataLine = *(line_end + 1) == '(' || *(line_end + 2) == '(';
+        if (!isBreakInTheMiddleOfTheDataLine) {
+          ParseResult<void> tmp = parse_line(data, line_start, line_end, unknown_error);
+          if (tmp.err)
+            return tmp;
+          line_start = line_end + 1;
+        }
       }
       line_end++;
     }

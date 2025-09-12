@@ -1,13 +1,22 @@
 on: push
 
 jobs:
-  build-windows:
+  build-windows-msvc:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
       - run: ./build-win.ps1
-  build_linux:
+  build-linux-gcc:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: ./build-linux.sh
+  build-linux-clang:
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get install -y clang
       - run: ./build-linux.sh

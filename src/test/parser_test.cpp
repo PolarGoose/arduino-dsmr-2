@@ -16,35 +16,35 @@ struct Printer {
 };
 
 TEST_CASE("Should parse all fields in the DSMR message correctly") {
-  const auto& dsmr_message = "/KFM5KAIFA-METER\r\n"
-                             "\r\n"
-                             "1-3:0.2.8(40)\r\n"
-                             "0-0:1.0.0(150117185916W)\r\n"
-                             "0-0:96.1.1(0000000000000000000000000000000000)\r\n"
-                             "1-0:1.8.1(000671.578*kWh)\r\n"
-                             "1-0:1.8.2(000842.472*kWh)\r\n"
-                             "1-0:2.8.1(000000.000*kWh)\r\n"
-                             "1-0:2.8.2(000000.000*kWh)\r\n"
-                             "0-0:96.14.0(0001)\r\n"
-                             "1-0:1.7.0(00.333*kW)\r\n"
-                             "1-0:2.7.0(00.000*kW)\r\n"
-                             "0-0:17.0.0(999.9*kW)\r\n"
-                             "0-0:96.3.10(1)\r\n"
-                             "0-0:96.7.21(00008)\r\n"
-                             "0-0:96.7.9(00007)\r\n"
-                             "1-0:99.97.0(1)(0-0:96.7.19)(000101000001W)(2147483647*s)\r\n"
-                             "1-0:32.32.0(00000)\r\n"
-                             "1-0:32.36.0(00000)\r\n"
-                             "0-0:96.13.1()\r\n"
-                             "0-0:96.13.0()\r\n"
-                             "1-0:31.7.0(001*A)\r\n"
-                             "1-0:21.7.0(00.332*kW)\r\n"
-                             "1-0:22.7.0(00.000*kW)\r\n"
-                             "0-1:24.1.0(003)\r\n"
-                             "0-1:96.1.0(0000000000000000000000000000000000)\r\n"
-                             "0-1:24.2.1(150117180000W)(00473.789*m3)\r\n"
-                             "0-1:24.4.0(1)\r\n"
-                             "!6f4A\r\n";
+  const auto& msg = "/KFM5KAIFA-METER\r\n"
+                    "\r\n"
+                    "1-3:0.2.8(40)\r\n"
+                    "0-0:1.0.0(150117185916W)\r\n"
+                    "0-0:96.1.1(0000000000000000000000000000000000)\r\n"
+                    "1-0:1.8.1(000671.578*kWh)\r\n"
+                    "1-0:1.8.2(000842.472*kWh)\r\n"
+                    "1-0:2.8.1(000000.000*kWh)\r\n"
+                    "1-0:2.8.2(000000.000*kWh)\r\n"
+                    "0-0:96.14.0(0001)\r\n"
+                    "1-0:1.7.0(00.333*kW)\r\n"
+                    "1-0:2.7.0(00.000*kW)\r\n"
+                    "0-0:17.0.0(999.9*kW)\r\n"
+                    "0-0:96.3.10(1)\r\n"
+                    "0-0:96.7.21(00008)\r\n"
+                    "0-0:96.7.9(00007)\r\n"
+                    "1-0:99.97.0(1)(0-0:96.7.19)(000101000001W)(2147483647*s)\r\n"
+                    "1-0:32.32.0(00000)\r\n"
+                    "1-0:32.36.0(00000)\r\n"
+                    "0-0:96.13.1()\r\n"
+                    "0-0:96.13.0()\r\n"
+                    "1-0:31.7.0(001*A)\r\n"
+                    "1-0:21.7.0(00.332*kW)\r\n"
+                    "1-0:22.7.0(00.000*kW)\r\n"
+                    "0-1:24.1.0(003)\r\n"
+                    "0-1:96.1.0(0000000000000000000000000000000000)\r\n"
+                    "0-1:24.2.1(150117180000W)(00473.789*m3)\r\n"
+                    "0-1:24.4.0(1)\r\n"
+                    "!6f4A\r\n";
 
   ParsedData<
       /* String */ identification,
@@ -97,7 +97,7 @@ TEST_CASE("Should parse all fields in the DSMR message correctly") {
       /* TimestampedFixedValue */ water_delivered>
       data;
 
-  auto res = P1Parser::parse(&data, dsmr_message, std::size(dsmr_message), true);
+  auto res = P1Parser::parse(&data, msg, std::size(msg), true);
   REQUIRE(res.err == nullptr);
 
   // Print all values
@@ -110,11 +110,11 @@ TEST_CASE("Should parse all fields in the DSMR message correctly") {
   REQUIRE(data.equipment_id == "0000000000000000000000000000000000");
   REQUIRE(data.energy_delivered_tariff1 == 671.578f);
   REQUIRE(data.energy_delivered_tariff2 == 842.472f);
-  REQUIRE(data.energy_returned_tariff1 == 0);
-  REQUIRE(data.energy_returned_tariff2 == 0);
+  REQUIRE(data.energy_returned_tariff1 == 0.0f);
+  REQUIRE(data.energy_returned_tariff2 == 0.0f);
   REQUIRE(data.electricity_tariff == "0001");
   REQUIRE(data.power_delivered == 0.333f);
-  REQUIRE(data.power_returned == 0);
+  REQUIRE(data.power_returned == 0.0f);
   REQUIRE(data.electricity_threshold == 999.9f);
   REQUIRE(data.electricity_switch_position == 1);
   REQUIRE(data.electricity_failures == 8);
@@ -124,9 +124,9 @@ TEST_CASE("Should parse all fields in the DSMR message correctly") {
   REQUIRE(data.electricity_swells_l1 == 0);
   REQUIRE(data.message_short.empty());
   REQUIRE(data.message_long.empty());
-  REQUIRE(data.current_l1 == 1);
+  REQUIRE(data.current_l1 == 1.0f);
   REQUIRE(data.power_delivered_l1 == 0.332f);
-  REQUIRE(data.power_returned_l1 == 0);
+  REQUIRE(data.power_returned_l1 == 0.0f);
   REQUIRE(data.gas_device_type == 3);
   REQUIRE(data.gas_equipment_id == "0000000000000000000000000000000000");
   REQUIRE(data.gas_valve_position == 1);
@@ -180,7 +180,7 @@ TEST_CASE("Should parse Wh-based integers for FixedField (fallback int_unit path
       /* FixedValue */ energy_delivered_lux>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(res.err == nullptr);
   REQUIRE(data.energy_delivered_lux == 441.879f); // 441,879 Wh => 441.879 kWh
   REQUIRE(fields::energy_delivered_lux::unit() == std::string("kWh"));
@@ -198,7 +198,7 @@ TEST_CASE("Should parse TimestampedFixedField for gas_delivered_be and expose ti
       /* TimestampedFixedValue */ gas_delivered_be>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(res.err == nullptr);
   REQUIRE(data.gas_delivered_be == 12.345f);
   REQUIRE(data.gas_delivered_be.timestamp == "230101120000W");
@@ -215,7 +215,7 @@ TEST_CASE("Should take the last value with LastFixedField (capacity rate history
       /* FixedValue */ active_energy_import_maximum_demand_last_13_months>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(data.active_energy_import_maximum_demand_last_13_months == 4.329f);
 }
 
@@ -231,7 +231,7 @@ TEST_CASE("Should detect duplicate fields") {
       /* FixedValue */ power_delivered>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(std::string(res.err) == "Duplicate field");
 }
 
@@ -245,7 +245,7 @@ TEST_CASE("Should error on unknown field when unknown_error is true") {
       /* String */ identification>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/true, /*check_crc=*/false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/true, /*check_crc=*/false);
   REQUIRE(std::string(res.err) == "Unknown field");
 }
 
@@ -260,7 +260,7 @@ TEST_CASE("Should report OBIS ID numbers over 255") {
       /* FixedValue */ power_delivered>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(std::string(res.err) == "Obis ID has number over 255");
 }
 
@@ -275,7 +275,7 @@ TEST_CASE("Should validate string length bounds (p1_version too short)") {
       /* String */ p1_version>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(std::string(res.err) == "Invalid string length");
 }
 
@@ -290,7 +290,7 @@ TEST_CASE("Should validate units for numeric fields") {
       /* FixedValue */ power_delivered>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(std::string(res.err) == "Invalid unit");
 }
 
@@ -305,7 +305,7 @@ TEST_CASE("Should report missing closing parenthesis for StringField") {
       /* String */ p1_version>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(std::string(res.err) == "Missing )");
 }
 
@@ -320,7 +320,7 @@ TEST_CASE("Should compute FixedField with decimals and millivolt int_unit correc
       /* FixedValue */ voltage_l1>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(data.voltage_l1 == 230.1f);
 }
 
@@ -336,7 +336,7 @@ TEST_CASE("all_present() should reflect presence of all requested fields") {
         /* FixedValue */ power_delivered>
         data;
 
-    auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+    P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
     REQUIRE(data.all_present());
   }
 
@@ -350,7 +350,7 @@ TEST_CASE("all_present() should reflect presence of all requested fields") {
         /* FixedValue */ power_delivered>
         data;
 
-    auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+    P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
     REQUIRE_FALSE(data.all_present());
   }
 }
@@ -366,7 +366,7 @@ TEST_CASE("Should report last dataline not CRLF terminated") {
       /* FixedValue */ power_delivered>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(std::string(res.err) == "Last dataline not CRLF terminated");
 }
 
@@ -381,7 +381,7 @@ TEST_CASE("Should report an error if checksum is not found") {
       /* FixedValue */ power_delivered>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/true);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/true);
   REQUIRE(std::string(res.err) == "No checksum found");
 }
 
@@ -438,7 +438,7 @@ TEST_CASE("Doesn't crash for a partial checksum") {
       /* FixedValue */ power_delivered>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/true);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/true);
   REQUIRE(std::string(res.err) == "No checksum found");
 }
 
@@ -452,7 +452,7 @@ TEST_CASE("Doesn't crash for a packet that doesn't end with '!' symbol") {
       /* FixedValue */ power_delivered>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/true);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/true);
   REQUIRE(std::string(res.err) == "Data should end with !");
 }
 
@@ -461,7 +461,7 @@ TEST_CASE("Trailing characters on data line") {
                     "1-0:1.7.0(00.123*kW) trailing\r\n"
                     "!\r\n";
   ParsedData</*String*/ identification, /*FixedValue*/ power_delivered> data;
-  auto res = P1Parser::parse(&data, msg, std::size(msg), false, false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), false, false);
   REQUIRE(std::string(res.err) == "Trailing characters on data line");
 }
 
@@ -479,7 +479,7 @@ TEST_CASE("Missing unit when required") {
                     "1-0:1.7.0(00.123)\r\n"
                     "!\r\n";
   ParsedData</*String*/ identification, /*FixedValue*/ power_delivered> data;
-  auto res = P1Parser::parse(&data, msg, std::size(msg), false, false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), false, false);
   REQUIRE(std::string(res.err) == "Missing unit");
 }
 
@@ -488,7 +488,7 @@ TEST_CASE("Unit present when not expected") {
                     "0-0:96.7.21(00008*s)\r\n"
                     "!\r\n";
   ParsedData</*String*/ identification, /*uint32_t*/ electricity_failures> data;
-  auto res = P1Parser::parse(&data, msg, std::size(msg), false, false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), false, false);
   REQUIRE(std::string(res.err) == "Extra data");
 }
 
@@ -503,7 +503,7 @@ TEST_CASE("Malformed packet that starts with ')'") {
       /* String */ p1_version>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(std::string(res.err) == "Missing (");
 }
 
@@ -518,7 +518,7 @@ TEST_CASE("Non-digit in numeric part") {
       /* FixedValue */ power_delivered>
       data;
 
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(std::string(res.err) == "Invalid number");
 }
 
@@ -529,7 +529,7 @@ TEST_CASE("OBIS id empty line") {
                     "!\r\n";
 
   ParsedData</*String*/ identification, /*FixedValue*/ power_delivered> data;
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(std::string(res.err) == "OBIS id Empty");
 }
 
@@ -540,7 +540,7 @@ TEST_CASE("Accepts LF-only line endings") {
                     "!\n";
 
   ParsedData</*String*/ identification, /*FixedValue*/ power_delivered> data;
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(data.power_delivered == 0.123f);
 }
 
@@ -551,7 +551,7 @@ TEST_CASE("Unit matching is case-insensitive") {
                     "!\r\n";
 
   ParsedData</*String*/ identification, /*FixedValue*/ energy_delivered_tariff1> data;
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(data.energy_delivered_tariff1 == 1.000f);
 }
 
@@ -562,7 +562,7 @@ TEST_CASE("Numeric without decimals is accepted (auto-padded)") {
                     "!";
 
   ParsedData</*String*/ identification, /*FixedValue*/ power_delivered> data;
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(res.err == nullptr);
   REQUIRE(data.power_delivered == 1.0f);
 }
@@ -574,6 +574,6 @@ TEST_CASE("Can parse a dataline if it has a break in the middle") {
                     "!";
 
   ParsedData<identification, gas_delivered_text, message_long> data;
-  auto res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(data.gas_delivered_text == "(120517020000)(08)(60)(1)(0-1:24.2.1)(m3)\r\n(00124.477)");
 }

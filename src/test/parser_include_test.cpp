@@ -10,5 +10,5 @@ using namespace fields;
 void SomeFunction() {
   const auto& msg = "";
   ParsedData<identification, p1_version> data;
-  const auto& res = P1Parser::parse(&data, msg, std::size(msg), true);
+  P1Parser::parse(&data, msg, std::size(msg), true);
 }

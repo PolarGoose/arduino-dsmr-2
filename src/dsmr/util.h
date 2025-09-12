@@ -60,13 +60,13 @@ struct ParseResult : public _ParseResult<ParseResult<T>, T> {
   const char* err = nullptr;
   const char* ctx = nullptr;
 
-  ParseResult& fail(const char* err, const char* ctx = nullptr) {
-    this->err = err;
-    this->ctx = ctx;
+  ParseResult& fail(const char* error, const char* context = nullptr) {
+    this->err = error;
+    this->ctx = context;
     return *this;
   }
-  ParseResult& until(const char* next) {
-    this->next = next;
+  ParseResult& until(const char* nextToken) {
+    this->next = nextToken;
     return *this;
   }
   ParseResult() = default;
@@ -91,10 +91,10 @@ struct ParseResult : public _ParseResult<ParseResult<T>, T> {
 
       // We can now predict the context string length, so let String allocate
       // memory in advance
-      res.reserve((line_end - line_start) + 2 + (this->ctx - line_start) + 1 + 2);
+      res.reserve(static_cast<size_t>((line_end - line_start) + 2 + (this->ctx - line_start) + 1 + 2));
 
       // Write the line
-      res.append(line_start, line_end - line_start);
+      res.append(line_start, static_cast<size_t>(line_end - line_start));
 
       res += "\r\n";
 

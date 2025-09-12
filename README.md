@@ -5,7 +5,7 @@ The main goal is to make the parser not depend on Arduino framework and be usabl
 * Code combines all fixes from [matthijskooijman/arduino-dsmr](https://github.com/matthijskooijman/arduino-dsmr) and [glmnet/arduino-dsmr](https://github.com/glmnet/arduino-dsmr)
 * Added extensive unit tests suite
 * Small refactoring and code optimizations
-* Code is compatible with MSVC and GCC compilers
+* Supported compilers: MSVC, GCC, Clang
 * Header only library, no dependencies
 * Code can be used on any platform, not only embedded.
 

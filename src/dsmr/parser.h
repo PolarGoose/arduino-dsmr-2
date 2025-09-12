@@ -67,14 +67,14 @@ struct ParsedData<T, Ts...> : public T, ParsedData<Ts...> {
   // OBIS id of the line is passed, and this method recursively finds a
   // field with a matching id. If any, it calls it's parse method, which
   // parses the value and stores it in the field.
-  ParseResult<void> parse_line(const ObisId& id, const char* str, const char* end) {
-    if (id == T::id) {
+  ParseResult<void> parse_line(const ObisId& obisId, const char* str, const char* end) {
+    if (obisId == T::id) {
       if (T::present())
         return ParseResult<void>().fail("Duplicate field", str);
       T::present() = true;
       return T::parse(str, end);
     }
-    return ParsedData<Ts...>::parse_line(id, str, end);
+    return ParsedData<Ts...>::parse_line(obisId, str, end);
   }
 
   template <typename F>
@@ -102,7 +102,7 @@ struct StringParser {
     if (str_end == end)
       return res.fail("Missing )", str_end);
 
-    size_t len = str_end - str_start;
+    const auto& len = static_cast<size_t>(str_end - str_start);
     if (len < min || len > max)
       return res.fail("Invalid string length", str_start);
 
@@ -131,7 +131,7 @@ struct NumParser {
       if (*num_end < '0' || *num_end > '9')
         return res.fail(INVALID_NUMBER, num_end);
       value *= 10;
-      value += *num_end - '0';
+      value += static_cast<uint32_t>(*num_end - '0');
       ++num_end;
     }
 
@@ -144,7 +144,7 @@ struct NumParser {
         if (*num_end < '0' || *num_end > '9')
           return res.fail(INVALID_NUMBER, num_end);
         value *= 10;
-        value += *num_end - '0';
+        value += static_cast<uint32_t>(*num_end - '0');
         ++num_end;
       }
     }
@@ -189,10 +189,10 @@ struct ObisIdParser {
       char c = *res.next;
 
       if (c >= '0' && c <= '9') {
-        uint8_t digit = c - '0';
+        const auto& digit = c - '0';
         if (id.v[part] > 25 || (id.v[part] == 25 && digit > 5))
           return res.fail("Obis ID has number over 255", res.next);
-        id.v[part] = id.v[part] * 10 + digit;
+        id.v[part] = static_cast<uint8_t>(id.v[part] * 10 + digit);
       } else if (part == 0 && c == '-') {
         part++;
       } else if (part == 1 && c == ':') {

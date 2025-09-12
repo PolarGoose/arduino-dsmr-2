@@ -55,7 +55,7 @@ struct TimestampField : StringField<T, 13, 13> {};
 // FixedField return the corresponding units for these values.
 struct FixedValue {
   operator float() const { return val(); }
-  float val() const { return _value / 1000.0; }
+  float val() const { return static_cast<float>(_value) / 1000.0f; }
   uint32_t int_val() const { return _value; }
 
   uint32_t _value;
@@ -143,21 +143,25 @@ template <typename T, const char* _unit>
 struct IntField : ParsedField<T> {
   ParseResult<void> parse(const char* str, const char* end) {
     ParseResult<uint32_t> res = NumParser::parse(0, _unit, str, end);
-    if (!res.err)
-      static_cast<T*>(this)->val() = res.result;
+    if (!res.err) {
+      auto& dst = static_cast<T*>(this)->val();
+      using Dst = std::remove_reference_t<decltype(dst)>;
+
+      // Narrow conversion. It is possible to loose data here
+      dst = static_cast<Dst>(res.result);
+    }
     return res;
   }
 
   static const char* unit() { return _unit; }
 };
 
-// A RawField is not parsed, the entire value (including any
-// parenthesis around it) is returned as a string.
+// A RawField is not parsed, the entire value (including any parenthesis around it) is returned as a string.
 template <typename T>
 struct RawField : ParsedField<T> {
   ParseResult<void> parse(const char* str, const char* end) {
     // Just copy the string verbatim value without any parsing
-    static_cast<T*>(this)->val().append(str, end - str);
+    static_cast<T*>(this)->val().append(str, static_cast<size_t>(end - str));
     return ParseResult<void>().until(end);
   }
 };

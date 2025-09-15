@@ -1,9 +1,12 @@
 {
-  "name": "Arduino DSMR",
+  "name": "arduino-dsmr-2",
   "version": "1.0",
-  "description": "Parser and utilities for Dutch Smart Meters (Implementing DSMR)",
+  "description": "Fork of arduino-dsmr. The library doesn't depend on Arduino framework and has several bug fixes and code quality improvements.",
   "keywords": "dsmr",
-  "repository": { "type": "git", "url": "https://github.com/PolarGoose/arduino-dsmr-make-work-on-Windows-and-Linux" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PolarGoose/arduino-dsmr-2"
+  },
   "license": "MIT",
   "export": { "include": [ "src/dsmr/*.h" ] }
 }

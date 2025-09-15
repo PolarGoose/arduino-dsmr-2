@@ -155,7 +155,6 @@ TEST_CASE("Should report an error if the crc of a package is incorrect") {
                     "1-0:.8.1(000671.578*kWh)\r\n"
                     "1-0:1.7.0(00.318*kW)\r\n"
                     "!1E1D\r\n";
-
   ParsedData<
       /* String */ identification,
       /* FixedValue */ power_delivered>

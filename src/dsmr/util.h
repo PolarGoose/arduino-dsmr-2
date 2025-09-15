@@ -8,6 +8,20 @@
 
 namespace dsmr {
 
+class NonCopyable {
+protected:
+  NonCopyable() = default;
+  ~NonCopyable() = default;
+
+public:
+  NonCopyable(NonCopyable&&) = default;
+  NonCopyable& operator=(NonCopyable&&) = default;
+
+  NonCopyable(const NonCopyable&) = delete;
+  NonCopyable& operator=(const NonCopyable&) = delete;
+};
+
+
 // The ParseResult<T> class wraps the result of a parse function. The type
 // of the result is passed as a template parameter and can be void to
 // not return any result.

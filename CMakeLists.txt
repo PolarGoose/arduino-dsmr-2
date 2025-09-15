@@ -17,7 +17,7 @@ include(${cmake_template_SOURCE_DIR}/cmake/Sanitizers.cmake)
 file(GLOB_RECURSE arduino_dsmr_test_src_files CONFIGURE_DEPENDS "src/*.h" "src/*.cpp")
 add_executable(arduino_dsmr_test ${arduino_dsmr_test_src_files})
 target_include_directories(arduino_dsmr_test PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/doctest)
-target_compile_features(arduino_dsmr_test PUBLIC cxx_std_17)
+target_compile_features(arduino_dsmr_test PUBLIC cxx_std_20)
 
 # enable warnings
 add_library(arduino_dsmr_test_warnings INTERFACE)

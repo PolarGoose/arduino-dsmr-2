@@ -247,25 +247,25 @@ DEFINE_FIELD(energy_returned_tariff3, FixedValue, ObisId(1, 0, 2, 8, 3), FixedFi
 DEFINE_FIELD(energy_returned_tariff4, FixedValue, ObisId(1, 0, 2, 8, 4), FixedField, units::kWh, units::Wh);
 
 // Extra fields used for Luxembourg and Lithuania
-DEFINE_FIELD(total_imported_energy, FixedValue, ObisId(1, 0, 3, 8, 0), FixedField, units::kvarh, units::kvarh);
+DEFINE_FIELD(total_imported_energy, FixedValue, ObisId(1, 0, 3, 8, 0), FixedField, units::kvarh, units::varh);
 // Meter Reading Reactive energy delivered to client (Tariff 1) in 0,001 kvarh
-DEFINE_FIELD(reactive_energy_delivered_tariff1, FixedValue, ObisId(1, 0, 3, 8, 1), FixedField, units::kvarh, units::kvarh);
+DEFINE_FIELD(reactive_energy_delivered_tariff1, FixedValue, ObisId(1, 0, 3, 8, 1), FixedField, units::kvarh, units::varh);
 // Meter Reading Reactive energy delivered to client (Tariff 2) in 0,001 kvarh
-DEFINE_FIELD(reactive_energy_delivered_tariff2, FixedValue, ObisId(1, 0, 3, 8, 2), FixedField, units::kvarh, units::kvarh);
+DEFINE_FIELD(reactive_energy_delivered_tariff2, FixedValue, ObisId(1, 0, 3, 8, 2), FixedField, units::kvarh, units::varh);
 // Meter Reading Reactive energy delivered to client (Tariff 3) in 0,001 kvarh
-DEFINE_FIELD(reactive_energy_delivered_tariff3, FixedValue, ObisId(1, 0, 3, 8, 3), FixedField, units::kvarh, units::kvarh);
+DEFINE_FIELD(reactive_energy_delivered_tariff3, FixedValue, ObisId(1, 0, 3, 8, 3), FixedField, units::kvarh, units::varh);
 // Meter Reading Reactive energy delivered to client (Tariff 4) in 0,001 kvarh
-DEFINE_FIELD(reactive_energy_delivered_tariff4, FixedValue, ObisId(1, 0, 3, 8, 4), FixedField, units::kvarh, units::kvarh);
+DEFINE_FIELD(reactive_energy_delivered_tariff4, FixedValue, ObisId(1, 0, 3, 8, 4), FixedField, units::kvarh, units::varh);
 
-DEFINE_FIELD(total_exported_energy, FixedValue, ObisId(1, 0, 4, 8, 0), FixedField, units::kvarh, units::kvarh);
+DEFINE_FIELD(total_exported_energy, FixedValue, ObisId(1, 0, 4, 8, 0), FixedField, units::kvarh, units::varh);
 // Meter Reading Reactive energy delivered by client (Tariff 1) in 0,001 kvarh
-DEFINE_FIELD(reactive_energy_returned_tariff1, FixedValue, ObisId(1, 0, 4, 8, 1), FixedField, units::kvarh, units::kvarh);
+DEFINE_FIELD(reactive_energy_returned_tariff1, FixedValue, ObisId(1, 0, 4, 8, 1), FixedField, units::kvarh, units::varh);
 // Meter Reading Reactive energy delivered by client (Tariff 2) in 0,001 kvarh
-DEFINE_FIELD(reactive_energy_returned_tariff2, FixedValue, ObisId(1, 0, 4, 8, 2), FixedField, units::kvarh, units::kvarh);
+DEFINE_FIELD(reactive_energy_returned_tariff2, FixedValue, ObisId(1, 0, 4, 8, 2), FixedField, units::kvarh, units::varh);
 // Meter Reading Reactive energy delivered by client (Tariff 3) in 0,001 kvarh
-DEFINE_FIELD(reactive_energy_returned_tariff3, FixedValue, ObisId(1, 0, 4, 8, 3), FixedField, units::kvarh, units::kvarh);
+DEFINE_FIELD(reactive_energy_returned_tariff3, FixedValue, ObisId(1, 0, 4, 8, 3), FixedField, units::kvarh, units::varh);
 // Meter Reading Reactive energy delivered by client (Tariff 4) in 0,001 kvarh
-DEFINE_FIELD(reactive_energy_returned_tariff4, FixedValue, ObisId(1, 0, 4, 8, 4), FixedField, units::kvarh, units::kvarh);
+DEFINE_FIELD(reactive_energy_returned_tariff4, FixedValue, ObisId(1, 0, 4, 8, 4), FixedField, units::kvarh, units::varh);
 
 // Specific fields used for Switzerland
 // Meter Reading electricity delivered to client (Tariff 1) in 0,001 kWh
@@ -288,8 +288,8 @@ DEFINE_FIELD(power_delivered, FixedValue, ObisId(1, 0, 1, 7, 0), FixedField, uni
 DEFINE_FIELD(power_returned, FixedValue, ObisId(1, 0, 2, 7, 0), FixedField, units::kW, units::W);
 
 // Extra fields used for Luxembourg and Lithuania
-DEFINE_FIELD(reactive_power_delivered, FixedValue, ObisId(1, 0, 3, 7, 0), FixedField, units::kvar, units::kvar);
-DEFINE_FIELD(reactive_power_returned, FixedValue, ObisId(1, 0, 4, 7, 0), FixedField, units::kvar, units::kvar);
+DEFINE_FIELD(reactive_power_delivered, FixedValue, ObisId(1, 0, 3, 7, 0), FixedField, units::kvar, units::var);
+DEFINE_FIELD(reactive_power_returned, FixedValue, ObisId(1, 0, 4, 7, 0), FixedField, units::kvar, units::var);
 
 // Specific fields used for Switzerland
 // Actual electricity power delivered (+P) in 1 Watt resolution

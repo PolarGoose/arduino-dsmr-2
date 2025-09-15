@@ -153,9 +153,15 @@ struct NumParser {
     while (max_decimals--)
       value *= 10;
 
+    // Workaround for https://github.com/matthijskooijman/arduino-dsmr/issues/50
+    // If value is 0, then we allow missing unit.
+    if (unit && *unit && (num_end >= end || (*num_end != '*' && *num_end != '.')) && value == 0) {
+      num_end = std::find(num_end, end, ')');
+    }
+
     // If a unit was passed, check that the unit in the messages
     // messages the unit passed.
-    if (unit && *unit) {
+    else if (unit && *unit) {
       if (num_end >= end || *num_end != '*')
         return res.fail("Missing unit", num_end);
       const char* unit_start = ++num_end; // skip *
@@ -316,7 +322,8 @@ struct P1Parser {
   template <typename... Ts>
   static ParseResult<void> parse_data(ParsedData<Ts...>* data, const char* str, const char* end, bool unknown_error = false) {
     // Split into lines and parse those
-    const char *line_end = str, *line_start = str;
+    const char* line_end = str;
+    const char* line_start = str;
 
     // Parse ID line
     while (line_end < end) {
@@ -347,20 +354,43 @@ struct P1Parser {
     }
 
     // Parse data lines
+    // We need to track brackets to handle cases like:
+    //   0-0:96.13.0(303132333435
+    //   30313233343)
+    bool open_bracket_found = false;
     while (line_end < end) {
-      if (*line_end == '\r' || *line_end == '\n') {
+      char c = *line_end;
 
-        // Workaround for https://github.com/matthijskooijman/arduino-dsmr/issues/22
-        // DSMR v3 allows CRLF in the middle of a data line
-        const auto& isBreakInTheMiddleOfTheDataLine = (end - line_end > 2) && (line_end[1] == '(' || line_end[2] == '(');
-        if (!isBreakInTheMiddleOfTheDataLine) {
+      if (c == '(') {
+        if (open_bracket_found) {
+          return ParseResult<void>().fail("Unexpected '(' symbol", line_end);
+        }
+        open_bracket_found = true;
+      } else if (c == ')') {
+        if (!open_bracket_found) {
+          return ParseResult<void>().fail("Unexpected ')' symbol", line_end);
+        }
+        open_bracket_found = false;
+      } else if (c == '\r' || c == '\n') {
+
+        // handles case like:
+        //  0-1:24.3.0(120517020000)(08)(60)(1)(0-1:24.2.1)(m3)
+        //  (00124.477)
+        const auto& next_part_of_the_data_line_on_next_line = (end - line_end > 2) && (line_end[1] == '(' || line_end[2] == '(');
+
+        const auto& break_in_the_middle_of_the_data_line = open_bracket_found || next_part_of_the_data_line_on_next_line;
+
+        if (!break_in_the_middle_of_the_data_line) {
+          // End of logical line -> parse it
           ParseResult<void> tmp = parse_line(data, line_start, line_end, unknown_error);
           if (tmp.err)
             return tmp;
+
           line_start = line_end + 1;
         }
       }
-      line_end++;
+
+      ++line_end;
     }
 
     if (line_end != line_start)

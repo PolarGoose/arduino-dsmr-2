@@ -3,6 +3,4 @@
 
 #include "dsmr/packet_accumulator.h"
 
-void PacketAccumulator_some_function() {
-  dsmr::PacketAccumulator({}, true);
-}
+void PacketAccumulator_some_function() { dsmr::PacketAccumulator({}, true); }

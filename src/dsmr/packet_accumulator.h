@@ -84,7 +84,7 @@ inline const char* to_string(const PacketAccumulatorError error) {
   case PacketAccumulatorError::CrcMismatch:
     return "CrcMismatch";
   }
-  
+
   return "Unknown error";
 }
 

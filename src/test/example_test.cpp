@@ -16,7 +16,14 @@ TEST_CASE("Complete example") {
                                   "0-0:96.1.1(0000000000000000000000000000000000)\r\n"
                                   "1-0:1.8.1(000671.578*kWh)\r\n"
                                   "!60e5"
-                                  "garbage after";
+                                  "garbage after"
+                                  "/KFM5KAIFA-METER\r\n"
+                                  "\r\n"
+                                  "1-3:0.2.8(40)\r\n"
+                                  "0-0:1.0.0(150117185916W)\r\n"
+                                  "0-0:96.1.1(0000000000000000000000000000000000)\r\n"
+                                  "1-0:1.8.1(000671.578*kWh)\r\n"
+                                  "!60e5";
 
   // Specify the fields you want to parse.
   // Full list of available fields is in fields.h
@@ -30,6 +37,7 @@ TEST_CASE("Complete example") {
 
   // This class is used to receive the message from the P1 port.
   // It retrieves bytes from the UART and finds a DSMR message and optionally checks the CRC.
+  // You only need to create this class once.
   PacketAccumulator accumulator(/* bufferSize */ 4000, /* check_crc */ true);
 
   // First step is to get the full message from the P1 port.

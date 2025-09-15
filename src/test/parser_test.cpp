@@ -278,6 +278,21 @@ TEST_CASE("Should validate string length bounds (p1_version too short)") {
   REQUIRE(std::string(res.err) == "Invalid string length");
 }
 
+TEST_CASE("Should validate string length bounds (p1_version too long)") {
+  const auto& msg = "/AAA5MTR\r\n"
+                    "\r\n"
+                    "1-3:0.2.8(123)\r\n" // p1_version expects 2 chars
+                    "!\r\n";
+
+  ParsedData<
+      /* String */ identification,
+      /* String */ p1_version>
+      data;
+
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  REQUIRE(std::string(res.err) == "Invalid string length");
+}
+
 TEST_CASE("Should validate units for numeric fields") {
   const auto& msg = "/AAA5MTR\r\n"
                     "\r\n"
@@ -305,7 +320,7 @@ TEST_CASE("Should report missing closing parenthesis for StringField") {
       data;
 
   const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
-  REQUIRE(std::string(res.err) == "Missing )");
+  REQUIRE(std::string(res.err) == "Last dataline not CRLF terminated");
 }
 
 TEST_CASE("Should compute FixedField with decimals and millivolt int_unit correctly") {
@@ -503,7 +518,7 @@ TEST_CASE("Malformed packet that starts with ')'") {
       data;
 
   const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
-  REQUIRE(std::string(res.err) == "Missing (");
+  REQUIRE(std::string(res.err) == "Unexpected ')' symbol");
 }
 
 TEST_CASE("Non-digit in numeric part") {
@@ -570,9 +585,44 @@ TEST_CASE("Can parse a dataline if it has a break in the middle") {
   const auto& msg = "/KMP5 ZABF000000000000\r\n"
                     "0-1:24.3.0(120517020000)(08)(60)(1)(0-1:24.2.1)(m3)\r\n"
                     "(00124.477)\r\n"
+                    "0-0:96.13.0(303132333435363738393A3B3C3D3E3F303132333435363738393A3B3C3D3E3F\r\n"
+                    "303132333435363738393A3B3C3D3E3F303132333435363738393A3B3C3D3E3F\r\n"
+                    "303132333435363738393A3B3C3D3E3F)\r\n"
                     "!";
 
   ParsedData<identification, gas_delivered_text, message_long> data;
   P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(data.gas_delivered_text == "(120517020000)(08)(60)(1)(0-1:24.2.1)(m3)\r\n(00124.477)");
+  REQUIRE(data.message_long ==
+          "303132333435363738393A3B3C3D3E3F303132333435363738393A3B3C3D3E3F\r\n303132333435363738393A3B3C3D3E3F303132333435363738393A3B3C3D3E3F\r\n303132333435363738393A3B3C3D3E3F");
+}
+
+TEST_CASE("Can parse a 0 value without a unit") {
+  const auto& msg = "/KMP5 ZABF000000000000\r\n"
+                    "0-1:24.2.1(000101000000W)(00000000.0000)\r\n"
+                    "!";
+  ParsedData<gas_delivered> data;
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  REQUIRE(res.err == nullptr);
+  REQUIRE(data.gas_delivered == 0.0f);
+}
+
+TEST_CASE("Whitespace after OBIS ID") {
+  const auto& msg = "/KMP5 ZABF000000000000\r\n"
+                    "0-1:24.2.1 (000101000000W)(00000000.0000)\r\n"
+                    "!";
+  ParsedData<gas_delivered> data;
+  const auto& res = P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  REQUIRE(std::string(res.err) == "Missing (");
+}
+
+TEST_CASE("Use integer fallback unit") {
+  const auto& msg = "/KMP5 ZABF000000000000\r\n"
+                    "0-1:24.2.1(230101120000W)(00012*dm3)\r\n"
+                    "1-0:14.7.0(50*Hz)\r\n"
+                    "!";
+  ParsedData<gas_delivered, frequency> data;
+  P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
+  REQUIRE(data.gas_delivered == 0.012f);
+  REQUIRE(data.frequency == 0.05f);
 }

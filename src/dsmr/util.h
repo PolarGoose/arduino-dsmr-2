@@ -6,7 +6,7 @@
 #include <string>
 #include <utility>
 
-namespace dsmr {
+namespace arduino_dsmr_2 {
 
 class NonCopyable {
 protected:
@@ -19,6 +19,16 @@ public:
 
   NonCopyable(const NonCopyable&) = delete;
   NonCopyable& operator=(const NonCopyable&) = delete;
+};
+
+class NonCopyableAndNonMovable : NonCopyable {
+protected:
+  NonCopyableAndNonMovable() = default;
+  ~NonCopyableAndNonMovable() = default;
+
+public:
+  NonCopyableAndNonMovable(NonCopyableAndNonMovable&&) = delete;
+  NonCopyableAndNonMovable& operator=(NonCopyableAndNonMovable&&) = delete;
 };
 
 // The ParseResult<T> class wraps the result of a parse function. The type

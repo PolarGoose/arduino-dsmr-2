@@ -2,10 +2,12 @@
 #include <dsmr/packet_accumulator.h>
 #include <string>
 
+using namespace arduino_dsmr_2;
+
 TEST_CASE("Packet with correct CRC lower case") {
   const auto& msg = "/some !a3D4";
 
-  auto accumulator = dsmr::PacketAccumulator(1000, true);
+  auto accumulator = PacketAccumulator(1000, true);
   for (const auto& byte : msg) {
     auto res = accumulator.process_byte(byte);
     REQUIRE(res.error().has_value() == false);
@@ -22,11 +24,11 @@ TEST_CASE("Packet with correct CRC lower case") {
 TEST_CASE("Packet with incorrect CRC") {
   const auto& msg = "/some data!0000";
 
-  dsmr::PacketAccumulator accumulator(1000, true);
+  PacketAccumulator accumulator(1000, true);
   for (const auto& byte : msg) {
     auto packet = accumulator.process_byte(byte);
     if (packet.error()) {
-      REQUIRE(*packet.error() == dsmr::PacketAccumulatorError::CrcMismatch);
+      REQUIRE(*packet.error() == PacketAccumulator::Error::CrcMismatch);
       return;
     }
   }
@@ -37,11 +39,11 @@ TEST_CASE("Packet with incorrect CRC") {
 TEST_CASE("Packet with incorrect CRC symbol") {
   const auto& msg = "/some data!G000";
 
-  dsmr::PacketAccumulator accumulator(1000, true);
+  PacketAccumulator accumulator(1000, true);
   for (const auto& byte : msg) {
     auto packet = accumulator.process_byte(byte);
     if (packet.error()) {
-      REQUIRE(*packet.error() == dsmr::PacketAccumulatorError::IncorrectCrcCharacter);
+      REQUIRE(*packet.error() == PacketAccumulator::Error::IncorrectCrcCharacter);
       return;
     }
   }
@@ -52,7 +54,7 @@ TEST_CASE("Packet with incorrect CRC symbol") {
 TEST_CASE("Packet without CRC") {
   const auto& msg = "/some data!";
 
-  dsmr::PacketAccumulator accumulator(1000, false);
+  PacketAccumulator accumulator(1000, false);
   for (const auto& byte : msg) {
     auto res = accumulator.process_byte(byte);
     REQUIRE(res.error().has_value() == false);
@@ -74,9 +76,9 @@ TEST_CASE("Parse data with different packets. CRC check") {
                     "/some !a3D4";             // correct package
 
   std::vector<std::string> received_packets;
-  std::vector<dsmr::PacketAccumulatorError> occurred_errors;
+  std::vector<PacketAccumulator::Error> occurred_errors;
 
-  dsmr::PacketAccumulator accumulator(15, true);
+  PacketAccumulator accumulator(15, true);
   for (const auto& byte : msg) {
     auto res = accumulator.process_byte(byte);
     if (res.error()) {
@@ -88,7 +90,7 @@ TEST_CASE("Parse data with different packets. CRC check") {
     }
   }
 
-  using enum dsmr::PacketAccumulatorError;
+  using enum PacketAccumulator::Error;
   REQUIRE(occurred_errors == std::vector{CrcMismatch, PacketStartSymbolInPacket, IncorrectCrcCharacter, BufferOverflow});
   REQUIRE(received_packets == std::vector<std::string>(4, "/some !"));
 }
@@ -101,9 +103,9 @@ TEST_CASE("Parse data with different packets. No CRC check") {
                     "/some !";                 // correct package
 
   std::vector<std::string> received_packets;
-  std::vector<dsmr::PacketAccumulatorError> occurred_errors;
+  std::vector<PacketAccumulator::Error> occurred_errors;
 
-  dsmr::PacketAccumulator accumulator(15, false);
+  PacketAccumulator accumulator(15, false);
   for (const auto& byte : msg) {
     auto res = accumulator.process_byte(byte);
     if (res.error()) {
@@ -115,7 +117,7 @@ TEST_CASE("Parse data with different packets. No CRC check") {
     }
   }
 
-  using enum dsmr::PacketAccumulatorError;
+  using enum PacketAccumulator::Error;
   REQUIRE(occurred_errors == std::vector{PacketStartSymbolInPacket, BufferOverflow});
   REQUIRE(received_packets == std::vector<std::string>(4, "/some !"));
 }

@@ -4,10 +4,10 @@
 #include <doctest.h>
 #include <iostream>
 
-using namespace dsmr;
+using namespace arduino_dsmr_2;
 using namespace fields;
 
-TEST_CASE("Complete example") {
+TEST_CASE("Complete example packet accumulator") {
   const auto& data_from_p1_port = "garbage before"
                                   "/KFM5KAIFA-METER\r\n"
                                   "\r\n"

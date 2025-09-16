@@ -3,7 +3,7 @@
 #include <doctest.h>
 #include <iostream>
 
-using namespace dsmr;
+using namespace arduino_dsmr_2;
 using namespace fields;
 
 struct Printer {
@@ -593,8 +593,8 @@ TEST_CASE("Can parse a dataline if it has a break in the middle") {
   ParsedData<identification, gas_delivered_text, message_long> data;
   P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(data.gas_delivered_text == "(120517020000)(08)(60)(1)(0-1:24.2.1)(m3)\r\n(00124.477)");
-  REQUIRE(data.message_long ==
-          "303132333435363738393A3B3C3D3E3F303132333435363738393A3B3C3D3E3F\r\n303132333435363738393A3B3C3D3E3F303132333435363738393A3B3C3D3E3F\r\n303132333435363738393A3B3C3D3E3F");
+  REQUIRE(data.message_long == "303132333435363738393A3B3C3D3E3F303132333435363738393A3B3C3D3E3F\r\n303132333435363738393A3B3C3D3E3F30313233343536373"
+                               "8393A3B3C3D3E3F\r\n303132333435363738393A3B3C3D3E3F");
 }
 
 TEST_CASE("Can parse a 0 value without a unit") {

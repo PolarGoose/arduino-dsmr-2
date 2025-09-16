@@ -2,10 +2,10 @@
 
 #include "util.h"
 
-namespace dsmr {
+namespace arduino_dsmr_2 {
 
 // uses polynomial x^16+x^15+x^2+1
-static uint16_t crc16_update(uint16_t crc, uint8_t data) {
+inline uint16_t crc16_update(uint16_t crc, uint8_t data) {
   crc ^= data;
   for (size_t i = 0; i < 8; ++i) {
     if (crc & 1) {

@@ -1,7 +1,7 @@
 {
   "name": "arduino-dsmr-2",
-  "version": "2.0",
-  "description": "Fork of arduino-dsmr. Doesn't depend on Arduino framework and has many bug fixes and code quality improvements.",
+  "version": "3.0",
+  "description": "Fork of arduino-dsmr. Doesn't depend on the Arduino framework and has many bug fixes and code quality improvements. Supports encrypted DSMR packets.",
   "keywords": "dsmr",
   "repository": {
     "type": "git",

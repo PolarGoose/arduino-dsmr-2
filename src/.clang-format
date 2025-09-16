@@ -5,4 +5,4 @@ AlwaysBreakTemplateDeclarations: Yes
 FixNamespaceComments: false
 PointerAlignment: Left
 AlignEscapedNewlines: Left
-ColumnLimit: 200
+ColumnLimit: 160

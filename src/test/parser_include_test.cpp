@@ -4,7 +4,7 @@
 #include "dsmr/fields.h"
 #include "dsmr/parser.h"
 
-using namespace dsmr;
+using namespace arduino_dsmr_2;
 using namespace fields;
 
 void P1Parser_some_function() {

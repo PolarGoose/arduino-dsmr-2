@@ -16,7 +16,7 @@
 #define DSMR_SUB_MBUS_ID 4
 #endif
 
-namespace dsmr {
+namespace arduino_dsmr_2 {
 
 // Superclass for data items in a P1 message.
 template <typename T>

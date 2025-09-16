@@ -1,7 +1,7 @@
 {
   "name": "arduino-dsmr-2",
-  "version": "1.0",
-  "description": "Fork of arduino-dsmr. The library doesn't depend on Arduino framework and has several bug fixes and code quality improvements.",
+  "version": "2.0",
+  "description": "Fork of arduino-dsmr. Doesn't depend on Arduino framework and has many bug fixes and code quality improvements.",
   "keywords": "dsmr",
   "repository": {
     "type": "git",

@@ -1,32 +1,30 @@
 This is a fork of [matthijskooijman/arduino-dsmr](https://github.com/matthijskooijman/arduino-dsmr).
-The main goal is to make the parser not depend on Arduino framework and be usable in ESPHome DSMR component with ESP-IDF framework.
+The primary goal is to make the parser independent of the Arduino framework and usable on ESP32 with the ESP-IDF framework or any other platform.
 
-# Current progress
-* Code combines all fixes from [matthijskooijman/arduino-dsmr](https://github.com/matthijskooijman/arduino-dsmr) and [glmnet/arduino-dsmr](https://github.com/glmnet/arduino-dsmr)
-* Added extensive unit tests suite
+# Features
+* Combines all fixes from [matthijskooijman/arduino-dsmr](https://github.com/matthijskooijman/arduino-dsmr) and [glmnet/arduino-dsmr](https://github.com/glmnet/arduino-dsmr) including unmerged pull requests.
+* Added an extensive unit test suite
 * Small refactoring and code optimizations
 * Supported compilers: MSVC, GCC, Clang
-* Header only library, no dependencies
+* Header-only library, no dependencies
 * Code can be used on any platform, not only embedded.
 
-# Details
-For more details about the parser and DSMR please refer to original [README.md](https://github.com/matthijskooijman/arduino-dsmr/blob/master/README.md) from matthijskooijman
+# Differences from the original arduino-dsmr
+* Requires a C++20 compatible compiler.
+* [P1Reader](https://github.com/matthijskooijman/arduino-dsmr/blob/master/src/dsmr/reader.h) class is replaced with the [PacketAccumulator](https://github.com/PolarGoose/arduino-dsmr-2/blob/master/src/dsmr/packet_accumulator.h) class with a different interface to allow usage on any platform.
 
 # How to use
 ## General usage
-The library is header only. Add the `src/dsmr` folder to your project.
+The library is header-only. Add the `src/dsmr` folder to your project.
 
 ## Usage from PlatformIO
-You can add the library to `platformio.ini`:
-```
-lib_deps =
-  ArduinoDSMR=https://github.com/PolarGoose/arduino-dsmr-make-work-on-Windows-and-Linux.git#<commit-hash>
-```
+The library is available on the PlatformIO registry:<br>
+[PlatformIO arduino-dsmr-2](https://registry.platformio.org/libraries/polargoose/arduino-dsmr-2/installation)
 
 # Examples
-## Examples how to use the parser
-[minimal_parse.ino](https://github.com/matthijskooijman/arduino-dsmr/blob/master/examples/minimal_parse/minimal_parse.ino)
-[parse.ino](https://github.com/matthijskooijman/arduino-dsmr/blob/master/examples/parse/parse.ino)
+## Examples of how to use the parser
+* [minimal_parse.ino](https://github.com/matthijskooijman/arduino-dsmr/blob/master/examples/minimal_parse/minimal_parse.ino)
+* [parse.ino](https://github.com/matthijskooijman/arduino-dsmr/blob/master/examples/parse/parse.ino)
 
 ## Complete example
 ```
@@ -106,10 +104,15 @@ void main() {
 
 # History behind this fork
 [matthijskooijman](https://github.com/matthijskooijman) is the original creator of this DSMR parser.
-Later, [glmnet/arduino-dsmr](https://github.com/glmnet/arduino-dsmr) fork was created to make the code work with more DSMR devices.
-[glmnet](https://github.com/glmnet) also used his fork to create an [ESPHome DSMR](https://esphome.io/components/sensor/dsmr/) component.
-After that, the work on the `arduino-dsmr` parser was abandoned. Currently, it was discovered that dependency on the Arduino framework causes issues for some ESP32 devices (the FW size is too big, and the Arduino framework makes you use an outdated version of ESP-IDF). Thus, I decided to create a new fork and make the parser work on any platform without Arduino.
+[glmnet](https://github.com/glmnet) continued work on this parser in his fork [glmnet/arduino-dsmr](https://github.com/glmnet/arduino-dsmr). He also used his fork to create [ESPHome DSMR](https://esphome.io/components/sensor/dsmr/) component.
+After that, the work on the `arduino-dsmr` parser was mostly stopped.
+
+## The reasons to create `arduino-dsmr-2` fork
+Dependency on the Arduino framework limits the applicability of this parser. For example, it is not possible to use it on Linux.
+The Arduino framework on ESP32 inflates the FW size and doesn't allow usage of the latest version of ESP-IDF.
+Many pull requests and bug fixes needed to be integrated into the parser.
 
 # How to work with the code
-* You can open the repository and work with the code using any IDE that supports Cmake.
-* Note: if you want to run `build-windows.ps1` script you need `Visual Studio 2022` to be installed.
+* You can open the code using any IDE that supports CMake.
+* Note: `build-windows.ps1` script needs `Visual Studio 2022` to be installed.
+* Note: `build-linux.sh` script needs clang to be installed.

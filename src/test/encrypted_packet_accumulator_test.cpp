@@ -108,7 +108,7 @@ TEST_CASE("Encryption key validation") {
 
 TEST_CASE("BufferOverflow when telegram length exceeds capacity") {
   arduino_dsmr_2::EncryptedPacketAccumulator acc(10);
-  const auto& header = make_header(16);
+  const auto& header = make_header(40);
   for (const auto byte : header) {
     const auto& res = acc.process_byte(byte);
     if (res.error()) {
@@ -125,7 +125,7 @@ TEST_CASE("Telegram is too small") {
   for (const auto byte : header) {
     const auto& res = acc.process_byte(byte);
     if (res.error()) {
-      REQUIRE(*res.error() == arduino_dsmr_2::EncryptedPacketAccumulator::Error::TelegramSizeTooSmall);
+      REQUIRE(*res.error() == arduino_dsmr_2::EncryptedPacketAccumulator::Error::HeaderCorrupted);
       return;
     }
   }

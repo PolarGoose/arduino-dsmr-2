@@ -145,17 +145,17 @@ void main() {
 }
 ```
 
-# History behind this fork
+# History behind arduino-dsmr
 [matthijskooijman](https://github.com/matthijskooijman) is the original creator of this DSMR parser.
 [glmnet](https://github.com/glmnet) and [zuidwijk](https://github.com/zuidwijk) continued work on this parser in the fork [glmnet/arduino-dsmr](https://github.com/glmnet/arduino-dsmr). They used the parser to create [ESPHome DSMR](https://esphome.io/components/sensor/dsmr/) component.
 After that, the work on the `arduino-dsmr` parser stopped.
-Since then, some issues and unmerged pull requests have accumulated. Additionally, the dependency on the Arduino framework can cause issues for some ESP32 boards.
-This fork was created to address the existing issues and make the parser usable on any platform.
+Since then, some issues and unmerged pull requests have accumulated. Additionally, the dependency on the Arduino framework causes various issues for some ESP32 boards.
+This fork addresses the existing issues and makes the parser usable on any platform.
 
 ## The reasons `arduino-dsmr-2` fork was created
 * Dependency on the Arduino framework limits the applicability of this parser. For example, it is not possible to use it on Linux.
-* The Arduino framework on ESP32 inflates the FW size and doesn't allow usage of the latest version of ESP-IDF, and limits the applicability of the parser.
-Many pull requests and bug fixes needed to be integrated into the parser.
+* The Arduino framework on ESP32 inflates the FW size and doesn't allow usage of the latest version of ESP-IDF.
+* Many pull requests and bug fixes needed to be integrated into the parser.
 * Lack of support for encrypted DSMR messages.
 
 # How to work with the code

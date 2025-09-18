@@ -57,6 +57,13 @@ class EncryptedPacketAccumulator : NonCopyableAndNonMovable {
       std::copy(invocation_counter, invocation_counter + 4, nonce.begin() + 8);
       return nonce;
     }
+
+    // There is no way to check if the received header is valid.
+    // Best we can do is to check the values of the constant fields and that the length is realistic.
+    bool check_consistency() const {
+      return header.fields.tag == 0xDB && header.fields.system_title_length == 0x08 && header.fields.long_form_length_indicator == 0x82 &&
+             header.fields.security_control_field == 0x30 && telegram_with_gcm_tag_length() > 25;
+    }
   };
 
   class TelegramAccumulator : NonCopyableAndNonMovable {
@@ -111,7 +118,7 @@ class EncryptedPacketAccumulator : NonCopyableAndNonMovable {
   std::array<uint8_t, 16> _encryption_key{};
 
 public:
-  enum class Error { BufferOverflow, TelegramSizeTooSmall, FailedToSetEncryptionKey, DecryptionFailed };
+  enum class Error { BufferOverflow, HeaderCorrupted, FailedToSetEncryptionKey, DecryptionFailed };
   enum class SetEncryptionKeyError { EncryptionKeyLengthIsNot32Bytes, EncryptionKeyContainsNonHexSymbols };
 
   class Result {
@@ -165,15 +172,14 @@ public:
         return {};
       }
 
+      if (!_header_accumulator.check_consistency()) {
+        _state = State::WaitingForPacketStartSymbol;
+        return Error::HeaderCorrupted;
+      }
+
       if (_header_accumulator.telegram_with_gcm_tag_length() > static_cast<int>(_encrypted_telegram_accumulator.capacity())) {
         _state = State::WaitingForPacketStartSymbol;
         return Error::BufferOverflow;
-      }
-
-      // Sanity check. The length must be at least 20 bytes
-      if (_header_accumulator.telegram_with_gcm_tag_length() < 20) {
-        _state = State::WaitingForPacketStartSymbol;
-        return Error::TelegramSizeTooSmall;
       }
 
       _state = State::AccumulatingTelegramWithGcmTag;
@@ -221,8 +227,8 @@ inline const char* to_string(const EncryptedPacketAccumulator::Error error) {
   switch (error) {
   case EncryptedPacketAccumulator::Error::BufferOverflow:
     return "BufferOverflow";
-  case EncryptedPacketAccumulator::Error::TelegramSizeTooSmall:
-    return "TelegramSizeTooSmall";
+  case EncryptedPacketAccumulator::Error::HeaderCorrupted:
+    return "HeaderCorrupted";
   case EncryptedPacketAccumulator::Error::FailedToSetEncryptionKey:
     return "FailedToSetEncryptionKey";
   case EncryptedPacketAccumulator::Error::DecryptionFailed:

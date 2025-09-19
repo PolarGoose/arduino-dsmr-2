@@ -16,7 +16,7 @@ The primary goal is to make the parser independent of the Arduino framework and 
 
 # How to use
 ## General usage
-The library is header-only. Add the `src/dsmr` folder to your project.<br>
+The library is header-only. Add the `src/arduino-dsmr-2` folder to your project.<br>
 Note: `encrypted_packet_accumulator.h` header depends on [Mbed TLS](https://www.trustedfirmware.org/projects/mbed-tls/) library. It is already included in the `ESP-IDF` framework and can be easily added to any other platforms.
 
 ## Usage from PlatformIO
@@ -30,9 +30,9 @@ The library is available on the PlatformIO registry:<br>
 
 ## Complete example
 ```
-#include "dsmr/fields.h"
-#include "dsmr/packet_accumulator.h"
-#include "dsmr/parser.h"
+#include "arduino-dsmr-2/fields.h"
+#include "arduino-dsmr-2/packet_accumulator.h"
+#include "arduino-dsmr-2/parser.h"
 #include <iostream>
 
 using namespace arduino_dsmr_2;
@@ -107,10 +107,9 @@ void main() {
 
 ## EncryptedPacketAccumulator example
 ```
-#include "dsmr/fields.h"
-#include "dsmr/encrypted_packet_accumulator.h"
-#include "dsmr/parser.h"
-#include <doctest.h>
+#include "arduino-dsmr-2/fields.h"
+#include "arduino-dsmr-2/encrypted_packet_accumulator.h"
+#include "arduino-dsmr-2/parser.h"
 #include <iostream>
 
 using namespace arduino_dsmr_2;

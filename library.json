@@ -1,6 +1,6 @@
 {
   "name": "arduino-dsmr-2",
-  "version": "3.0",
+  "version": "4.0",
   "description": "Fork of arduino-dsmr. Doesn't depend on the Arduino framework and has many bug fixes and code quality improvements. Supports encrypted DSMR packets.",
   "keywords": "dsmr",
   "repository": {
@@ -8,5 +8,5 @@
     "url": "https://github.com/PolarGoose/arduino-dsmr-2"
   },
   "license": "MIT",
-  "export": { "include": [ "src/dsmr/*.h" ] }
+  "export": { "include": [ "src/arduino-dsmr-2/*.h" ] }
 }

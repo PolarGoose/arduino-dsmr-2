@@ -1,8 +1,10 @@
+#include "arduino-dsmr-2/encrypted_packet_accumulator.h"
 #include <doctest.h>
-#include <dsmr/encrypted_packet_accumulator.h>
 #include <filesystem>
 #include <fstream>
 #include <source_location>
+
+using namespace arduino_dsmr_2;
 
 inline std::vector<std::uint8_t> read_binary_file(const std::filesystem::path path) {
   std::ifstream file(path, std::ios::binary);
@@ -30,7 +32,7 @@ static std::vector<std::uint8_t> make_header(const std::uint16_t total_len) {
 }
 
 TEST_CASE("Can receive correct packet") {
-  auto accumulator = arduino_dsmr_2::EncryptedPacketAccumulator(1000);
+  auto accumulator = EncryptedPacketAccumulator(1000);
   REQUIRE(!accumulator.set_encryption_key("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"));
 
   for (const auto& byte : encrypted_packet) {
@@ -51,13 +53,13 @@ TEST_CASE("Error on corrupted packet") {
   auto corrupted_packet = encrypted_packet;
   corrupted_packet[50] ^= 0xFF;
 
-  auto accumulator = arduino_dsmr_2::EncryptedPacketAccumulator(1000);
+  auto accumulator = EncryptedPacketAccumulator(1000);
   REQUIRE(!accumulator.set_encryption_key("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").has_value());
 
   for (const auto& byte : corrupted_packet) {
     const auto& res = accumulator.process_byte(byte);
     if (res.error()) {
-      REQUIRE(*res.error() == arduino_dsmr_2::EncryptedPacketAccumulator::Error::DecryptionFailed);
+      REQUIRE(*res.error() == EncryptedPacketAccumulator::Error::DecryptionFailed);
       return;
     }
   }
@@ -83,7 +85,7 @@ TEST_CASE("Receive many packets") {
   total_packet.insert(total_packet.end(), packet4.begin(), packet4.end());
 
   size_t received_packets = 0;
-  auto accumulator = arduino_dsmr_2::EncryptedPacketAccumulator(1000);
+  auto accumulator = EncryptedPacketAccumulator(1000);
   REQUIRE(!accumulator.set_encryption_key("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").has_value());
 
   for (const auto byte : total_packet) {
@@ -98,21 +100,21 @@ TEST_CASE("Receive many packets") {
 }
 
 TEST_CASE("Encryption key validation") {
-  auto accumulator = arduino_dsmr_2::EncryptedPacketAccumulator(1000);
+  auto accumulator = EncryptedPacketAccumulator(1000);
   REQUIRE(!accumulator.set_encryption_key("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").has_value());
   REQUIRE(!accumulator.set_encryption_key("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").has_value());
-  REQUIRE(*accumulator.set_encryption_key("AAAAAAAAAAA") == arduino_dsmr_2::EncryptedPacketAccumulator::SetEncryptionKeyError::EncryptionKeyLengthIsNot32Bytes);
+  REQUIRE(*accumulator.set_encryption_key("AAAAAAAAAAA") == EncryptedPacketAccumulator::SetEncryptionKeyError::EncryptionKeyLengthIsNot32Bytes);
   REQUIRE(*accumulator.set_encryption_key("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") ==
-          arduino_dsmr_2::EncryptedPacketAccumulator::SetEncryptionKeyError::EncryptionKeyContainsNonHexSymbols);
+          EncryptedPacketAccumulator::SetEncryptionKeyError::EncryptionKeyContainsNonHexSymbols);
 }
 
 TEST_CASE("BufferOverflow when telegram length exceeds capacity") {
-  arduino_dsmr_2::EncryptedPacketAccumulator acc(10);
+  EncryptedPacketAccumulator acc(10);
   const auto& header = make_header(40);
   for (const auto byte : header) {
     const auto& res = acc.process_byte(byte);
     if (res.error()) {
-      REQUIRE(*res.error() == arduino_dsmr_2::EncryptedPacketAccumulator::Error::BufferOverflow);
+      REQUIRE(*res.error() == EncryptedPacketAccumulator::Error::BufferOverflow);
       return;
     }
   }
@@ -120,12 +122,12 @@ TEST_CASE("BufferOverflow when telegram length exceeds capacity") {
 }
 
 TEST_CASE("Telegram is too small") {
-  arduino_dsmr_2::EncryptedPacketAccumulator acc(1000);
+  EncryptedPacketAccumulator acc(1000);
   const auto& header = make_header(16);
   for (const auto byte : header) {
     const auto& res = acc.process_byte(byte);
     if (res.error()) {
-      REQUIRE(*res.error() == arduino_dsmr_2::EncryptedPacketAccumulator::Error::HeaderCorrupted);
+      REQUIRE(*res.error() == EncryptedPacketAccumulator::Error::HeaderCorrupted);
       return;
     }
   }
@@ -133,14 +135,14 @@ TEST_CASE("Telegram is too small") {
 }
 
 TEST_CASE("Can receive packet after buffer overflow") {
-  arduino_dsmr_2::EncryptedPacketAccumulator accumulator(1000);
+  EncryptedPacketAccumulator accumulator(1000);
   REQUIRE_FALSE(accumulator.set_encryption_key("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").has_value());
 
   auto too_long_header = make_header(2000);
   bool overflow_error_occurred = false;
   for (const auto byte : too_long_header) {
     const auto& res = accumulator.process_byte(byte);
-    if (res.error() == arduino_dsmr_2::EncryptedPacketAccumulator::Error::BufferOverflow) {
+    if (res.error() == EncryptedPacketAccumulator::Error::BufferOverflow) {
       overflow_error_occurred = true;
     }
   }

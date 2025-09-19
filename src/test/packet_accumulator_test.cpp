@@ -1,5 +1,5 @@
+#include "arduino-dsmr-2/packet_accumulator.h"
 #include <doctest.h>
-#include <dsmr/packet_accumulator.h>
 #include <string>
 
 using namespace arduino_dsmr_2;

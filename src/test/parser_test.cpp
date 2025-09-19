@@ -1,5 +1,5 @@
-#include "dsmr/fields.h"
-#include "dsmr/parser.h"
+#include "arduino-dsmr-2/fields.h"
+#include "arduino-dsmr-2/parser.h"
 #include <doctest.h>
 #include <iostream>
 

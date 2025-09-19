@@ -136,7 +136,7 @@ public:
     auto error() const { return _error; }
   };
 
-  explicit EncryptedPacketAccumulator(size_t bufferSize) : _encrypted_telegram_accumulator(bufferSize), _decrypted_telegram_buf(bufferSize) {}
+  explicit EncryptedPacketAccumulator(const size_t buffer_size) : _encrypted_telegram_accumulator(buffer_size), _decrypted_telegram_buf(buffer_size) {}
 
   // key_hex is a string like "00112233445566778899AABBCCDDEEFF"
   std::optional<SetEncryptionKeyError> set_encryption_key(std::string_view key_hex) {
@@ -210,6 +210,13 @@ public:
     // Unreachable
     return {};
   }
+
+  // According to the specification, packets arrive once every 10 seconds.
+  // It is possible that some bytes are lost during transmission.
+  // Thus, you need to use a timeout to detect when a packet transmission finishes.
+  // In case the transmission finished, but the `process_byte` method did not return a complete packet,
+  // you need to call this method to reset the internal state machine.
+  void reset() { _state = State::WaitingForPacketStartSymbol; }
 
 private:
   static std::optional<uint8_t> to_hex_value(const char c) {

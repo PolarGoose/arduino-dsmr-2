@@ -164,3 +164,5 @@ This fork addresses the existing issues and makes the parser usable on any platf
 
 # References
 * [DSMR parser in Python](https://github.com/ndokter/dsmr_parser/tree/master)
+* [SmartyReader](https://www.weigu.lu/microcontroller/smartyReader_P1/index.html) - open source hardware to communicate with P1 port.
+* [SmartyReader. Chapter "Encryption"](https://www.weigu.lu/microcontroller/smartyReader/index.html) - description of how the encrypted DSMR protocol works.

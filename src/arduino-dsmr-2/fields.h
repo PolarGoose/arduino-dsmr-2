@@ -156,6 +156,67 @@ struct IntField : ParsedField<T> {
   static const char* unit() { return _unit; }
 };
 
+// Take the average value of multiple values. Example:
+//   0-0:98.1.0(2)(1-0:1.6.0)(1-0:1.6.0)(230201000000W)(230117224500W)(04.329*kW)(230202000000W)(230214224500W)(04.529*kW)
+// Will produce an average between 4.329 and 4.529
+template <typename T, const char* _unit, const char* _int_unit>
+struct AveragedFixedField : public FixedField<T, _unit, _int_unit> {
+  ParseResult<void> parse(const char* str, const char* end) {
+    // get the number of values that are available in the data
+    auto numberOfValues = NumParser::parse(0, "", str, end);
+    if (numberOfValues.err) {
+      return numberOfValues;
+    }
+
+    if (numberOfValues.result == 0) {
+      numberOfValues.next = end; // mark that we consumed all input
+      static_cast<T*>(this)->val()._value = 0;
+      return numberOfValues;
+    }
+
+    // Skip (1-0:1.6.0)
+    auto res = StringParser::parse_string(1, 20, numberOfValues.next, end);
+    if (res.err)
+      return res;
+
+    // Skip another (1-0:1.6.0)
+    res = StringParser::parse_string(1, 20, res.next, end);
+    if (res.err)
+      return res;
+
+    ParseResult<uint32_t> average;
+    average.succeed(0u);
+    average.next = res.next;
+    for (uint32_t i = 0; i < numberOfValues.result; i++) {
+      // skip date (230201000000W)
+      res = StringParser::parse_string(1, 20, average.next, end);
+      if (res.err)
+        return res;
+
+      // skip second date (230117224500W)
+      res = StringParser::parse_string(1, 20, res.next, end);
+      if (res.err)
+        return res;
+
+      // parse value (04.329*kW) or (04329*W)
+      auto monthValue = NumParser::parse(3, _unit, res.next, end);
+      if (monthValue.err) {
+        monthValue = NumParser::parse(0, _int_unit, res.next, end);
+        if (monthValue.err)
+          return monthValue;
+      }
+
+      average.next = monthValue.next;
+      average.result += monthValue.result;
+    }
+
+    average.result /= numberOfValues.result;
+    static_cast<T*>(this)->val()._value = average.result;
+
+    return average;
+  }
+};
+
 // A RawField is not parsed, the entire value (including any parenthesis around it) is returned as a string.
 template <typename T>
 struct RawField : ParsedField<T> {
@@ -514,7 +575,7 @@ DEFINE_FIELD(apparent_energy_export_last_completed_demand, FixedValue, ObisId(1,
 // Maximum energy consumption from the current month
 DEFINE_FIELD(active_energy_import_maximum_demand_running_month, TimestampedFixedValue, ObisId(1, 0, 1, 6, 0), TimestampedFixedField, units::kW, units::W);
 // Maximum energy consumption from the last 13 months
-DEFINE_FIELD(active_energy_import_maximum_demand_last_13_months, FixedValue, ObisId(0, 0, 98, 1, 0), LastFixedField, units::kW, units::W);
+DEFINE_FIELD(active_energy_import_maximum_demand_last_13_months, FixedValue, ObisId(0, 0, 98, 1, 0), AveragedFixedField, units::kW, units::W);
 
 // Image Core Version and checksum
 DEFINE_FIELD(fw_core_version, FixedValue, ObisId(1, 0, 0, 2, 0), FixedField, units::none, units::none);

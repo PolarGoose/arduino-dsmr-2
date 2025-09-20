@@ -33,6 +33,7 @@ TEST_CASE("Should parse all fields in the DSMR message correctly") {
                     "0-0:96.7.21(00008)\r\n"
                     "0-0:96.7.9(00007)\r\n"
                     "1-0:99.97.0(1)(0-0:96.7.19)(000101000001W)(2147483647*s)\r\n"
+                    "0-0:98.1.0(2)(1-0:1.6.0)(1-0:1.6.0)(230201000000W)(230117224500W)(04.329*kW)(230202000000W)(230214224500W)(04529*W)\r\n"
                     "1-0:32.32.0(00000)\r\n"
                     "1-0:32.36.0(00000)\r\n"
                     "0-0:96.13.1()\r\n"
@@ -44,7 +45,7 @@ TEST_CASE("Should parse all fields in the DSMR message correctly") {
                     "0-1:96.1.0(0000000000000000000000000000000000)\r\n"
                     "0-1:24.2.1(150117180000W)(00473.789*m3)\r\n"
                     "0-1:24.4.0(1)\r\n"
-                    "!6f4A\r\n";
+                    "!f2C9\r\n";
 
   ParsedData<
       /* String */ identification,
@@ -94,7 +95,8 @@ TEST_CASE("Should parse all fields in the DSMR message correctly") {
       /* uint16_t */ water_device_type,
       /* String */ water_equipment_id,
       /* uint8_t */ water_valve_position,
-      /* TimestampedFixedValue */ water_delivered>
+      /* TimestampedFixedValue */ water_delivered,
+      /* AveragedFixedField */ active_energy_import_maximum_demand_last_13_months>
       data;
 
   auto res = P1Parser::parse(&data, msg, std::size(msg), true);
@@ -131,6 +133,7 @@ TEST_CASE("Should parse all fields in the DSMR message correctly") {
   REQUIRE(data.gas_equipment_id == "0000000000000000000000000000000000");
   REQUIRE(data.gas_valve_position == 1);
   REQUIRE(data.gas_delivered == 473.789f);
+  REQUIRE(data.active_energy_import_maximum_demand_last_13_months.val() == 4.429f);
 }
 
 TEST_CASE("Should report an error if the crc has incorrect format") {
@@ -625,4 +628,31 @@ TEST_CASE("Use integer fallback unit") {
   P1Parser::parse(&data, msg, std::size(msg), /*unknown_error=*/false, /*check_crc=*/false);
   REQUIRE(data.gas_delivered == 0.012f);
   REQUIRE(data.frequency == 0.05f);
+}
+
+TEST_CASE("AveragedFixedField works properly for a long array") {
+  const auto& msg = "/KMP5 ZABF000000000000\r\n"
+                    "0-0:98.1.0(11)(1-0:1.6.0)(1-0:1.6.0)(230101000000W)(221206183000W)(06.134*kW)(230201000000W)(230127174500W)(05.644*kW)(230301000000W)("
+                    "230226063000W)(04.895*kW)(230401000000S)(230305181500W)(04.879*kW)(230501000000S)(230416094500S)(04.395*kW)(230601000000S)(230522084500S)("
+                    "03.242*kW)(230701000000S)(230623053000S)(01.475*kW)(230801000000S)(230724060000S)(02.525*kW)(230901000000S)(230819174500S)(02.491*kW)("
+                    "231001000000S)(230911063000S)(02.342*kW)(231101000000W)(231031234500W)(02.048*kW)\r\n"
+                    "!";
+
+  ParsedData<active_energy_import_maximum_demand_last_13_months> data;
+  P1Parser::parse(&data, msg, std::size(msg), /* unknown_error */ true, /* check_crc */ false);
+
+  REQUIRE(data.active_energy_import_maximum_demand_last_13_months.val() == 3.642f);
+}
+
+TEST_CASE("AveragedFixedField works properly for an empty array") {
+  const auto& msg = "/KMP5 ZABF000000000000\r\n"
+                    "0-0:98.1.0(0)(garbage that will be skipped)\r\n"
+                    "1-0:1.8.1(000001.000*kwh)\r\n"
+                    "!";
+
+  ParsedData<active_energy_import_maximum_demand_last_13_months, energy_delivered_tariff1> data;
+  P1Parser::parse(&data, msg, std::size(msg), /* unknown_error */ true, /* check_crc */ false);
+
+  REQUIRE(data.active_energy_import_maximum_demand_last_13_months.val() == 0.0f);
+  REQUIRE(data.energy_delivered_tariff1.val() == 1.0f);
 }

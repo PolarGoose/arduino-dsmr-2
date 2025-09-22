@@ -40,51 +40,34 @@ inline uint16_t crc16_update(uint16_t crc, uint8_t data) {
 // Furthermore, this class offers some helper methods that can be used
 // to loop over all the fields inside it.
 template <typename... Ts>
-struct ParsedData;
-
-// Base case: No fields present.
-template <>
-struct ParsedData<> {
-  ParseResult<void> parse_line(const ObisId& /* id */, const char* str, const char* /* end */) {
-    // Parsing succeeded, but found no matching handler (so return
-    // set the next pointer to show nothing was parsed).
-    return ParseResult<void>().until(str);
-  }
-
-  template <typename F>
-  void applyEach(F&& /* f */) {
-    // Nothing to do
-  }
-
-  bool all_present() { return true; }
-};
-
-// General case: At least one typename is passed.
-template <typename T, typename... Ts>
-struct ParsedData<T, Ts...> : public T, ParsedData<Ts...> {
-
-  // This method is used by the parser to parse a single line. The
-  // OBIS id of the line is passed, and this method recursively finds a
-  // field with a matching id. If any, it calls it's parse method, which
-  // parses the value and stores it in the field.
+struct ParsedData : Ts... {
   ParseResult<void> parse_line(const ObisId& obisId, const char* str, const char* end) {
-    if (obisId == T::id) {
-      if (T::present())
-        return ParseResult<void>().fail("Duplicate field", str);
-      T::present() = true;
-      return T::parse(str, end);
-    }
-    return ParsedData<Ts...>::parse_line(obisId, str, end);
+    ParseResult<void> res;
+    const auto& try_one = [&](auto& field) -> bool {
+      using FieldType = std::decay_t<decltype(field)>;
+      if (obisId != FieldType::id) {
+        return false;
+      }
+
+      if (field.present())
+        res = ParseResult<void>().fail("Duplicate field", str);
+      else {
+        field.present() = true;
+        res = field.parse(str, end);
+      }
+      return true;
+    };
+
+    const bool found = (try_one(static_cast<Ts&>(*this)) || ...);
+    return found ? res : ParseResult<void>().until(str);
   }
 
   template <typename F>
   void applyEach(F&& f) {
-    T::apply(f);
-    return ParsedData<Ts...>::applyEach(f);
+    (Ts::apply(f), ...);
   }
 
-  // Returns true when all defined fields are present.
-  bool all_present() { return T::present() && ParsedData<Ts...>::all_present(); }
+  bool all_present() { return (Ts::present() && ...); }
 };
 
 struct StringParser {

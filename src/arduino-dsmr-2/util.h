@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -134,12 +135,11 @@ struct ParseResult : public _ParseResult<ParseResult<T>, T> {
 
 // An OBIS id is 6 bytes, usually noted as a-b:c.d.e.f. Here we put them in an array for easy parsing.
 struct ObisId {
-  uint8_t v[6];
-
-  constexpr ObisId(uint8_t a, uint8_t b = 255, uint8_t c = 255, uint8_t d = 255, uint8_t e = 255, uint8_t f = 255) : v{a, b, c, d, e, f} {};
-  constexpr ObisId() : v() {} // Zeroes
-
-  bool operator==(const ObisId& other) const { return memcmp(&v, &other.v, sizeof(v)) == 0; }
+  std::array<uint8_t, 6> v{};
+  constexpr ObisId(const uint8_t a, const uint8_t b = 255, const uint8_t c = 255, const uint8_t d = 255, const uint8_t e = 255, const uint8_t f = 255) noexcept
+      : v{a, b, c, d, e, f} {};
+  ObisId() = default;
+  bool operator==(const ObisId&) const = default;
 };
 
 }

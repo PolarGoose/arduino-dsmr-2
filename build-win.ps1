@@ -14,6 +14,27 @@ Function CheckReturnCodeOfPreviousCommand($msg) {
   }
 }
 
+Function BuildAndTest($buildType, $arch) {
+  Info "Build and test $buildType-$arch"
+
+  $thisBuildDir = "$buildDir/win-$buildType-$arch"
+
+  Info "Cmake generate cache"
+  cmake -S $root `
+        -B $thisBuildDir `
+        -G Ninja `
+        -D CMAKE_BUILD_TYPE=$buildType
+  CheckReturnCodeOfPreviousCommand "cmake cache failed"
+
+  Info "Cmake build"
+  cmake --build $thisBuildDir
+  CheckReturnCodeOfPreviousCommand "cmake build failed"
+
+  Info "Run tests"
+  & "$thisBuildDir/arduino_dsmr_test.exe"
+  CheckReturnCodeOfPreviousCommand "tests failed"
+}
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
@@ -25,39 +46,14 @@ Info "Find Visual Studio installation path"
 $vswhereCommand = Get-Command -Name "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $installationPath = & $vswhereCommand -prerelease -latest -property installationPath
 
-Info "Open Visual Studio 2022 Developer PowerShell"
+Info "Open Visual Studio 2022 Developer PowerShell amd64"
 & "$installationPath\Common7\Tools\Launch-VsDevShell.ps1" -Arch amd64
 
-Info "Build and test debug version"
-Info "Cmake generate cache"
-cmake `
-  -S $root `
-  -B $buildDir/win-debug `
-  -G Ninja `
-  -D CMAKE_BUILD_TYPE=Debug
-CheckReturnCodeOfPreviousCommand "cmake cache failed"
+BuildAndTest -buildType Debug -arch amd64
+BuildAndTest -buildType Release -arch amd64
 
-Info "Cmake build"
-cmake --build $buildDir/win-debug
-CheckReturnCodeOfPreviousCommand "cmake build failed"
+Info "Open Visual Studio 2022 Developer PowerShell x86"
+& "$installationPath\Common7\Tools\Launch-VsDevShell.ps1" -Arch x86
 
-Info "Run tests"
-& "$buildDir/win-debug/arduino_dsmr_test.exe"
-CheckReturnCodeOfPreviousCommand "tests failed"
-
-Info "Build and test release version"
-Info "Cmake generate cache"
-cmake `
-  -S $root `
-  -B $buildDir/win-release `
-  -G Ninja `
-  -D CMAKE_BUILD_TYPE=Release
-CheckReturnCodeOfPreviousCommand "cmake cache failed"
-
-Info "Cmake build"
-cmake --build $buildDir/win-release
-CheckReturnCodeOfPreviousCommand "cmake build failed"
-
-Info "Run tests"
-& "$buildDir/win-release/arduino_dsmr_test.exe"
-CheckReturnCodeOfPreviousCommand "tests failed"
+BuildAndTest -buildType Debug -arch x86
+BuildAndTest -buildType Release -arch x86

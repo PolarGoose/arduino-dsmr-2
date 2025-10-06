@@ -12,7 +12,7 @@ The primary goal is to make the parser independent of the Arduino framework and 
 # Differences from the original arduino-dsmr
 * Requires a C++20 compatible compiler.
 * [P1Reader](https://github.com/matthijskooijman/arduino-dsmr/blob/master/src/dsmr/reader.h) class is replaced with the [PacketAccumulator](https://github.com/PolarGoose/arduino-dsmr-2/blob/master/src/dsmr/packet_accumulator.h) class with a different interface to allow usage on any platform.
-* Added `EncryptedPacketAccumulator` class to receive encrypted DSMR messages (like from "Luxembourg Smarty").
+* Added [EncryptedPacketAccumulator](https://github.com/PolarGoose/arduino-dsmr-2/blob/master/src/arduino-dsmr-2/encrypted_packet_accumulator.h) class to receive encrypted DSMR messages (like from "Luxembourg Smarty").
 
 # How to use
 ## General usage
@@ -24,131 +24,13 @@ The library is available on the PlatformIO registry:<br>
 [PlatformIO arduino-dsmr-2](https://registry.platformio.org/libraries/polargoose/arduino-dsmr-2/installation)
 
 # Examples
-## Examples of how to use the parser
-* [minimal_parse.ino](https://github.com/matthijskooijman/arduino-dsmr/blob/master/examples/minimal_parse/minimal_parse.ino)
-* [parse.ino](https://github.com/matthijskooijman/arduino-dsmr/blob/master/examples/parse/parse.ino)
-
-## Complete example
-```
-#include "arduino-dsmr-2/fields.h"
-#include "arduino-dsmr-2/packet_accumulator.h"
-#include "arduino-dsmr-2/parser.h"
-#include <iostream>
-
-using namespace arduino_dsmr_2;
-using namespace fields;
-
-void main() {
-  const auto& data_from_p1_port = "garbage before"
-                                  "/KFM5KAIFA-METER\r\n"
-                                  "\r\n"
-                                  "1-3:0.2.8(40)\r\n"
-                                  "0-0:1.0.0(150117185916W)\r\n"
-                                  "0-0:96.1.1(0000000000000000000000000000000000)\r\n"
-                                  "1-0:1.8.1(000671.578*kWh)\r\n"
-                                  "!60e5"
-                                  "garbage after"
-                                  "/KFM5KAIFA-METER\r\n"
-                                  "\r\n"
-                                  "1-3:0.2.8(40)\r\n"
-                                  "0-0:1.0.0(150117185916W)\r\n"
-                                  "0-0:96.1.1(0000000000000000000000000000000000)\r\n"
-                                  "1-0:1.8.1(000671.578*kWh)\r\n"
-                                  "!60e5
-                                  "another packet";
-
-  // Specify the fields you want to parse.
-  // Full list of available fields is in fields.h
-  ParsedData<
-      /* String */ identification,
-      /* String */ p1_version,
-      /* String */ timestamp,
-      /* String */ equipment_id,
-      /* FixedValue */ energy_delivered_tariff1>
-      data;
-
-  // This class is used to receive the message from the P1 port.
-  // It retrieves bytes from the UART and finds a DSMR message and optionally checks the CRC.
-  // You only need to create this class once.
-  PacketAccumulator accumulator(/* bufferSize */ 4000, /* check_crc */ true);
-
-  // First step is to get the full message from the P1 port.
-  // In this example, we go through the bytes from the message above.
-  // In a real application, you need to read the bytes from the UART one byte at a time.
-  for (const auto& byte : data_from_p1_port) {
-    // feed the byte to the accumulator
-    auto res = accumulator.process_byte(byte);
-
-    // During receiving, errors may occur, such as CRC mismatches.
-    // You can optionally log these errors, or ignore them.
-    if (res.error()) {
-      printf("Error during receiving a packet: %s", to_string(*res.error()));
-    }
-
-    // When a full packet is received, the packet() method will return it.
-    // The packet starts with '/' and ends with the '!'.
-    // The CRC is not included.
-    if (res.packet()) {
-      // Parse the received packet.
-      const auto packet = *res.packet();
-      // Specify `check_crc` as false, since the accumulator already checked the CRC and didn't include it in the packet
-      P1Parser::parse(&data, packet.data(), packet.size(), /* unknown_error */ false, /* check_crc */ false);
-
-      // Now you can use the parsed data.
-      printf("Identification: %s\n", data.identification.c_str());
-      printf("P1 version: %s\n", data.p1_version.c_str());
-      printf("Timestamp: %s\n", data.timestamp.c_str());
-      printf("Equipment ID: %s\n", data.equipment_id.c_str());
-      printf("Energy delivered tariff 1: %.3f\n", static_cast<double>(data.energy_delivered_tariff1.val()));
-    }
-  }
-}
-```
-
-## EncryptedPacketAccumulator example
-```
-#include "arduino-dsmr-2/fields.h"
-#include "arduino-dsmr-2/encrypted_packet_accumulator.h"
-#include "arduino-dsmr-2/parser.h"
-#include <iostream>
-
-using namespace arduino_dsmr_2;
-using namespace fields;
-
-void main() {
-  std::vector<uint8_t> encrypted_data_from_p1_port;
-
-  // This class is similar to the PacketAccumulator, but it handles encrypted packets.
-  // Use this class only if you have a smart meter that uses encryption.
-  // The class allocates two buffers of buffer_size. One for accumulating encrypted data and one for decrypted data.
-  EncryptedPacketAccumulator accumulator(/* buffer_size */ 4000);
-
-  // Set the encryption key. This key is unique for each smart meter and should be provided by your energy supplier.
-  const auto error = accumulator.set_encryption_key("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-  if (error) {
-    printf("Failed to set encryption key: %s", to_string(*error));
-    return;
-  }
-
-  for (const auto& byte : encrypted_data_from_p1_port) {
-    // feed the byte to the accumulator
-    auto res = accumulator.process_byte(byte);
-    if (res.error()) {
-      printf("Error during receiving a packet: %s", to_string(*res.error()));
-    }
-
-    // When a full packet is received, the packet() method returns unencrypted packet.
-    if (res.packet()) {
-      // Parse the received packet the same way as with PacketAccumulator example
-    }
-
-    // If the data stops coming, but the packet is not fully received then you have to drop the accumulated data and start from scratch.
-    if (/* timeout */ false) {
-      accumulator.reset();
-    }
-  }
-}
-```
+* How to use the parser
+  * [minimal_parse.ino](https://github.com/matthijskooijman/arduino-dsmr/blob/master/examples/minimal_parse/minimal_parse.ino)
+  * [parse.ino](https://github.com/matthijskooijman/arduino-dsmr/blob/master/examples/parse/parse.ino)
+* Complete example using PacketAccumulator
+  * [packet_accumulator_example_test.cpp](https://github.com/PolarGoose/arduino-dsmr-2/blob/master/src/test/packet_accumulator_example_test.cpp)
+* Example using EncryptedPacketAccumulator
+  * [encrypted_packet_accumulator_example_test.cpp](https://github.com/PolarGoose/arduino-dsmr-2/blob/master/src/test/encrypted_packet_accumulator_example_test.cpp)
 
 # History behind arduino-dsmr
 [matthijskooijman](https://github.com/matthijskooijman) is the original creator of this DSMR parser.
@@ -169,6 +51,6 @@ This fork addresses the existing issues and makes the parser usable on any platf
   * `build-linux.sh` script needs `clang` to be installed.
 
 # References
-* [DSMR parser in Python](https://github.com/ndokter/dsmr_parser/tree/master)
+* [DSMR parser in Python](https://github.com/ndokter/dsmr_parser/tree/master) - alternative DSMR parser implementation in Python.
 * [SmartyReader](https://www.weigu.lu/microcontroller/smartyReader_P1/index.html) - open source hardware to communicate with P1 port.
-* [SmartyReader. Chapter "Encryption"](https://www.weigu.lu/microcontroller/smartyReader/index.html) - description of how the encrypted DSMR protocol works.
+* [SmartyReader. Chapter "Encryption"](https://www.weigu.lu/microcontroller/smartyReader/index.html) - how the encrypted DSMR protocol works.

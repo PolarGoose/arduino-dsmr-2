@@ -16,7 +16,7 @@ std::vector<T> concat(const std::vector<T>& first, const Vecs&... rest) {
   return out;
 }
 
-inline std::vector<std::uint8_t> read_binary_file(const std::filesystem::path path) {
+inline std::vector<std::uint8_t> read_binary_file(const std::filesystem::path& path) {
   std::ifstream file(path, std::ios::binary);
   return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
 }
@@ -30,7 +30,9 @@ static void change_length(std::vector<std::uint8_t>& packet, const std::uint16_t
 }
 
 TEST_CASE("Can receive correct packet") {
-  auto accumulator = EncryptedPacketAccumulator(1000);
+  std::array<std::uint8_t, 2000> encrypted_packet_buffer;
+  std::array<char, 2000> decrypted_packet_buffer;
+  auto accumulator = EncryptedPacketAccumulator(encrypted_packet_buffer, decrypted_packet_buffer);
   REQUIRE(!accumulator.set_encryption_key("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"));
 
   for (const auto& byte : encrypted_packet) {
@@ -48,10 +50,13 @@ TEST_CASE("Can receive correct packet") {
 }
 
 TEST_CASE("Error on corrupted packet") {
+  std::array<std::uint8_t, 2000> encrypted_packet_buffer;
+  std::array<char, 2000> decrypted_packet_buffer;
+
   auto corrupted_packet = encrypted_packet;
   corrupted_packet[50] ^= 0xFF;
 
-  auto accumulator = EncryptedPacketAccumulator(1000);
+  auto accumulator = EncryptedPacketAccumulator(encrypted_packet_buffer, decrypted_packet_buffer);
   REQUIRE(!accumulator.set_encryption_key("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").has_value());
 
   for (const auto& byte : corrupted_packet) {
@@ -66,7 +71,10 @@ TEST_CASE("Error on corrupted packet") {
 }
 
 TEST_CASE("Encryption key validation") {
-  auto accumulator = EncryptedPacketAccumulator(1000);
+  std::array<std::uint8_t, 2000> encrypted_packet_buffer;
+  std::array<char, 2000> decrypted_packet_buffer;
+
+  auto accumulator = EncryptedPacketAccumulator(encrypted_packet_buffer, decrypted_packet_buffer);
   REQUIRE(!accumulator.set_encryption_key("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").has_value());
   REQUIRE(!accumulator.set_encryption_key("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").has_value());
   REQUIRE(*accumulator.set_encryption_key("AAAAAAAAAAA") == EncryptedPacketAccumulator::SetEncryptionKeyError::EncryptionKeyLengthIsNot32Bytes);
@@ -75,7 +83,10 @@ TEST_CASE("Encryption key validation") {
 }
 
 TEST_CASE("BufferOverflow when telegram length exceeds capacity") {
-  EncryptedPacketAccumulator acc(10);
+  std::array<std::uint8_t, 10> encrypted_packet_buffer;
+  std::array<char, 10> decrypted_packet_buffer;
+
+  EncryptedPacketAccumulator acc(encrypted_packet_buffer, decrypted_packet_buffer);
   for (const auto byte : encrypted_packet) {
     const auto& res = acc.process_byte(byte);
     if (res.error()) {
@@ -87,7 +98,10 @@ TEST_CASE("BufferOverflow when telegram length exceeds capacity") {
 }
 
 TEST_CASE("Telegram is too small") {
-  EncryptedPacketAccumulator acc(1000);
+  std::array<std::uint8_t, 2000> encrypted_packet_buffer;
+  std::array<char, 2000> decrypted_packet_buffer;
+
+  EncryptedPacketAccumulator acc(encrypted_packet_buffer, decrypted_packet_buffer);
   auto too_small_packet = encrypted_packet;
   change_length(too_small_packet, 16);
 
@@ -101,36 +115,11 @@ TEST_CASE("Telegram is too small") {
   REQUIRE(false);
 }
 
-TEST_CASE("Reset works") {
-  EncryptedPacketAccumulator accumulator(1000);
-  REQUIRE_FALSE(accumulator.set_encryption_key("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").has_value());
-
-  for (auto byte : encrypted_packet | std::views::take(50)) {
-    const auto& res = accumulator.process_byte(byte);
-    REQUIRE(res.error().has_value() == false);
-    REQUIRE(res.packet().has_value() == false);
-  }
-
-  accumulator.reset();
-
-  bool got_packet = false;
-  for (const auto& byte : encrypted_packet) {
-    const auto& res = accumulator.process_byte(byte);
-    REQUIRE(res.error().has_value() == false);
-
-    if (res.packet()) {
-      REQUIRE(std::string(*res.packet()).starts_with("/EST5\\253710000_A\r\n"));
-      REQUIRE(std::string(*res.packet()).ends_with("1-0:4.7.0(000000166*var)\r\n!7EF9\r\n"));
-      got_packet = true;
-      break;
-    }
-  }
-
-  REQUIRE(got_packet);
-}
-
 TEST_CASE("Receive many packets") {
-  auto accumulator = EncryptedPacketAccumulator(500);
+  std::array<std::uint8_t, 500> encrypted_packet_buffer;
+  std::array<char, 500> decrypted_packet_buffer;
+
+  auto accumulator = EncryptedPacketAccumulator(encrypted_packet_buffer, decrypted_packet_buffer);
   REQUIRE(!accumulator.set_encryption_key("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").has_value());
 
   const auto& garbage = std::vector<std::uint8_t>(100, 0x55);

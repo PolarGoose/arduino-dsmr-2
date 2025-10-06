@@ -3,4 +3,6 @@
 
 #include "arduino-dsmr-2/encrypted_packet_accumulator.h"
 
-void EncryptedPacketAccumulator_some_function() { arduino_dsmr_2::EncryptedPacketAccumulator(1000); }
+std::array<uint8_t, 1000> encrypted_packet_buffer;
+std::array<char, 1000> decrypted_packet_buffer;
+void EncryptedPacketAccumulator_some_function() { arduino_dsmr_2::EncryptedPacketAccumulator(encrypted_packet_buffer, decrypted_packet_buffer); }

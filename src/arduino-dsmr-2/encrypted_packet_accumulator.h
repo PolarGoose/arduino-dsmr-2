@@ -12,7 +12,7 @@ namespace arduino_dsmr_2 {
 // The encryption is described in the "specs/Luxembourg Smarty P1 specification v1.1.3.pdf" chapter "3.2.5 P1 software – Channel security".
 // The packet has the following structure:
 //   Header (18 bytes) | Telegram | GCM Tag (12 bytes)
-class EncryptedPacketAccumulator : NonCopyableAndNonMovable {
+class EncryptedPacketAccumulator {
   class HeaderAccumulator {
 #pragma pack(push, 1)
     union Header {
@@ -49,43 +49,39 @@ class EncryptedPacketAccumulator : NonCopyableAndNonMovable {
 
     // Also called "IV"
     auto nonce() const {
-      // SystemTitle (8 bytes) + InvocationCounter (4 bytes)
-      std::array<uint8_t, 12> nonce;
-      const auto& system_title = header.fields.system_title;
-      const auto& invocation_counter = header.fields.invocation_counter_big_endian;
-      std::copy(system_title, system_title + 8, nonce.begin());
-      std::copy(invocation_counter, invocation_counter + 4, nonce.begin() + 8);
-      return nonce;
+      // nonce = SystemTitle (8 bytes) + InvocationCounter (4 bytes)
+      const auto& st = header.fields.system_title;
+      const auto& ic = header.fields.invocation_counter_big_endian;
+      return std::array<uint8_t, 12>{st[0], st[1], st[2], st[3], st[4], st[5], st[6], st[7], ic[0], ic[1], ic[2], ic[3]};
     }
 
-    // There is no way to check if the received header is valid.
-    // Best we can do is to check the values of the constant fields and that the length is realistic.
     bool check_consistency() const {
-      return header.fields.tag == 0xDB && header.fields.system_title_length == 0x08 && header.fields.long_form_length_indicator == 0x82 &&
-             header.fields.security_control_field == 0x30 && telegram_with_gcm_tag_length() > 25;
+      // There is no way to check if the received header is valid.
+      // Best we can do is to check the values of the constant fields and that the length is realistic.
+      const auto& hf = header.fields;
+      return hf.tag == 0xDB && hf.system_title_length == 0x08 && hf.long_form_length_indicator == 0x82 && hf.security_control_field == 0x30 &&
+             telegram_with_gcm_tag_length() > 25;
     }
   };
 
-  class TelegramAccumulator : NonCopyableAndNonMovable {
-    std::vector<uint8_t> buffer;
-    std::size_t packetSize = 0;
+  class TelegramAccumulator {
+    std::span<uint8_t> _buffer;
+    std::size_t _packetSize = 0;
 
   public:
-    explicit TelegramAccumulator(std::size_t bufferSize) : buffer(bufferSize) {}
+    explicit TelegramAccumulator(std::span<uint8_t> buffer) : _buffer(buffer) {}
 
     void add(const uint8_t byte) {
-      buffer[packetSize] = byte;
-      packetSize++;
+      _buffer[_packetSize] = byte;
+      _packetSize++;
     }
 
-    size_t number_of_accumulated_bytes() const { return packetSize; }
-    size_t capacity() const { return buffer.size(); }
+    size_t number_of_accumulated_bytes() const { return _packetSize; }
+    size_t capacity() const { return _buffer.size(); }
 
     // The tag is always last 12 bytes
-    std::span<const uint8_t> telegram() const { return {buffer.data(), packetSize - 12}; }
-    std::span<const uint8_t> tag() const { return {buffer.data() + packetSize - 12, 12}; }
-
-    void reset() { packetSize = 0; }
+    std::span<const uint8_t> telegram() const { return {_buffer.data(), _packetSize - 12}; }
+    std::span<const uint8_t> tag() const { return {_buffer.data() + _packetSize - 12, 12}; }
   };
 
   class MbedTlsAes128GcmDecryptor : NonCopyableAndNonMovable {
@@ -96,8 +92,8 @@ class EncryptedPacketAccumulator : NonCopyableAndNonMovable {
 
     bool set_encryption_key(const std::span<const uint8_t> key) { return mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, key.data(), 128) == 0; }
 
-    bool decrypt(std::span<const uint8_t> iv, std::span<const uint8_t> ciphertext, std::span<const uint8_t> tag, std::vector<char>& decrypted_output) {
-      // AdditionalAuthenticatedData = SecurityControlField + AuthenticationKey.
+    bool decrypt(std::span<const uint8_t> iv, std::span<const uint8_t> ciphertext, std::span<const uint8_t> tag, std::span<char> decrypted_output) {
+      // aad = AdditionalAuthenticatedData = SecurityControlField + AuthenticationKey.
       //   SecurityControlField is always 0x30.
       //   AuthenticationKey = "00112233445566778899AABBCCDDEEFF". It is hardcoded and is the same for all DSMR devices.
       constexpr uint8_t aad[] = {0x30, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
@@ -112,9 +108,10 @@ class EncryptedPacketAccumulator : NonCopyableAndNonMovable {
 
   enum class State { WaitingForPacketStartSymbol, AccumulatingPacketHeader, AccumulatingTelegramWithGcmTag };
   State _state = State::WaitingForPacketStartSymbol;
+  std::span<uint8_t> _raw_receive_encrypted_packet_buffer;
+  std::span<char> _raw_decrypted_telegram_buffer;
   HeaderAccumulator _header_accumulator;
   TelegramAccumulator _encrypted_telegram_accumulator;
-  std::vector<char> _decrypted_telegram_buf;
   std::array<uint8_t, 16> _encryption_key{};
 
 public:
@@ -136,7 +133,9 @@ public:
     auto error() const { return _error; }
   };
 
-  explicit EncryptedPacketAccumulator(const size_t buffer_size) : _encrypted_telegram_accumulator(buffer_size), _decrypted_telegram_buf(buffer_size) {}
+  explicit EncryptedPacketAccumulator(std::span<uint8_t> encrypted_packet_buffer, std::span<char> decrypted_telegram_buffer)
+      : _raw_receive_encrypted_packet_buffer(encrypted_packet_buffer), _raw_decrypted_telegram_buffer(decrypted_telegram_buffer),
+        _encrypted_telegram_accumulator(encrypted_packet_buffer) {}
 
   // key_hex is a string like "00112233445566778899AABBCCDDEEFF"
   std::optional<SetEncryptionKeyError> set_encryption_key(std::string_view key_hex) {
@@ -162,7 +161,7 @@ public:
       if (byte == 0xDB) {
         _header_accumulator = HeaderAccumulator();
         _header_accumulator.add(byte);
-        _encrypted_telegram_accumulator.reset();
+        _encrypted_telegram_accumulator = TelegramAccumulator(_raw_receive_encrypted_packet_buffer);
         _state = State::AccumulatingPacketHeader;
       }
       return {};
@@ -200,11 +199,11 @@ public:
       }
 
       if (!decryptor.decrypt(_header_accumulator.nonce(), _encrypted_telegram_accumulator.telegram(), _encrypted_telegram_accumulator.tag(),
-                             _decrypted_telegram_buf)) {
+                             _raw_decrypted_telegram_buffer)) {
         return Error::DecryptionFailed;
       }
 
-      return std::string_view(_decrypted_telegram_buf.data(), _encrypted_telegram_accumulator.telegram().size());
+      return std::string_view(_raw_decrypted_telegram_buffer.data(), _encrypted_telegram_accumulator.telegram().size());
     }
 
     // Unreachable

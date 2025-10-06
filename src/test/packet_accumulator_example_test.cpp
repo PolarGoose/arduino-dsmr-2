@@ -7,7 +7,14 @@
 using namespace arduino_dsmr_2;
 using namespace fields;
 
-TEST_CASE("Complete example packet accumulator") {
+TEST_CASE("PacketAccumulator example") {
+
+  // Buffer to store the incoming bytes.
+  // This Buffer must be large enough to hold the full DSMR message.
+  // Advice: define the Buffer as a global variable, to avoid using stack and heap memory.
+  std::array<char, 4000> buffer;
+
+  // For the sake of this example, we define a data that is supposed to come from the P1 port.
   const auto& data_from_p1_port = "garbage before"
                                   "/KFM5KAIFA-METER\r\n"
                                   "\r\n"
@@ -26,7 +33,7 @@ TEST_CASE("Complete example packet accumulator") {
                                   "!60e5";
 
   // Specify the fields you want to parse.
-  // Full list of available fields is in fields.h
+  // Full list of available fields is in "fields.h" file
   ParsedData<
       /* String */ identification,
       /* String */ p1_version,
@@ -38,13 +45,12 @@ TEST_CASE("Complete example packet accumulator") {
   // This class is used to receive the message from the P1 port.
   // It retrieves bytes from the UART and finds a DSMR message and optionally checks the CRC.
   // You only need to create this class once.
-  PacketAccumulator accumulator(/* bufferSize */ 4000, /* check_crc */ true);
+  PacketAccumulator accumulator(/* buffer */ buffer, /* check_crc */ true);
 
-  // First step is to get the full message from the P1 port.
-  // In this example, we go through the bytes from the message above.
-  // In a real application, you need to read the bytes from the UART one byte at a time.
+  // Main loop.
+  // We need to read data from P1 port 1 byte at a time.
   for (const auto& byte : data_from_p1_port) {
-    // feed the byte to the accumulator
+    // Feed the byte to the accumulator
     auto res = accumulator.process_byte(byte);
 
     // During receiving, errors may occur, such as CRC mismatches.
@@ -57,8 +63,10 @@ TEST_CASE("Complete example packet accumulator") {
     // The packet starts with '/' and ends with the '!'.
     // The CRC is not included.
     if (res.packet()) {
-      // Parse the received packet.
+      // Get the recieved packet
       const auto packet = *res.packet();
+
+      // Parse the packet.
       // Specify `check_crc` as false, since the accumulator already checked the CRC and didn't include it in the packet
       P1Parser::parse(&data, packet.data(), packet.size(), /* unknown_error */ false, /* check_crc */ false);
 

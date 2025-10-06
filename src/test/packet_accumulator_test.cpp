@@ -1,13 +1,15 @@
 #include "arduino-dsmr-2/packet_accumulator.h"
 #include <doctest.h>
 #include <string>
+#include <vector>
 
 using namespace arduino_dsmr_2;
 
 TEST_CASE("Packet with correct CRC lower case") {
+  std::vector<char> buffer(1000);
   const auto& msg = "/some !a3D4";
 
-  auto accumulator = PacketAccumulator(1000, true);
+  auto accumulator = PacketAccumulator(buffer, true);
   for (const auto& byte : msg) {
     auto res = accumulator.process_byte(byte);
     REQUIRE(res.error().has_value() == false);
@@ -22,9 +24,10 @@ TEST_CASE("Packet with correct CRC lower case") {
 }
 
 TEST_CASE("Packet with incorrect CRC") {
+  std::vector<char> buffer(1000);
   const auto& msg = "/some data!0000";
 
-  PacketAccumulator accumulator(1000, true);
+  PacketAccumulator accumulator(buffer, true);
   for (const auto& byte : msg) {
     auto packet = accumulator.process_byte(byte);
     if (packet.error()) {
@@ -37,9 +40,10 @@ TEST_CASE("Packet with incorrect CRC") {
 }
 
 TEST_CASE("Packet with incorrect CRC symbol") {
+  std::vector<char> buffer(1000);
   const auto& msg = "/some data!G000";
 
-  PacketAccumulator accumulator(1000, true);
+  PacketAccumulator accumulator(buffer, true);
   for (const auto& byte : msg) {
     auto packet = accumulator.process_byte(byte);
     if (packet.error()) {
@@ -52,9 +56,10 @@ TEST_CASE("Packet with incorrect CRC symbol") {
 }
 
 TEST_CASE("Packet without CRC") {
+  std::vector<char> buffer(1000);
   const auto& msg = "/some data!";
 
-  PacketAccumulator accumulator(1000, false);
+  PacketAccumulator accumulator(buffer, false);
   for (const auto& byte : msg) {
     auto res = accumulator.process_byte(byte);
     REQUIRE(res.error().has_value() == false);
@@ -67,6 +72,7 @@ TEST_CASE("Packet without CRC") {
 }
 
 TEST_CASE("Parse data with different packets. CRC check") {
+  std::vector<char> buffer(15);
   const auto& msg = "garbage /some !a3D4"      // correct package
                     "garbage /some !a3D3"      // CRC mismatch
                     "garbage /so/some !a3D4"   // Packet start symbol '/' in the middle of the packet
@@ -78,7 +84,7 @@ TEST_CASE("Parse data with different packets. CRC check") {
   std::vector<std::string> received_packets;
   std::vector<PacketAccumulator::Error> occurred_errors;
 
-  PacketAccumulator accumulator(15, true);
+  PacketAccumulator accumulator(buffer, true);
   for (const auto& byte : msg) {
     auto res = accumulator.process_byte(byte);
     if (res.error()) {
@@ -96,6 +102,7 @@ TEST_CASE("Parse data with different packets. CRC check") {
 }
 
 TEST_CASE("Parse data with different packets. No CRC check") {
+  std::vector<char> buffer(15);
   const auto& msg = "garbage /some !"          // correct package
                     "garbage /so/some !"       // Packet start symbol '/' in the middle of the packet
                     "/some !"                  // correct package
@@ -105,7 +112,7 @@ TEST_CASE("Parse data with different packets. No CRC check") {
   std::vector<std::string> received_packets;
   std::vector<PacketAccumulator::Error> occurred_errors;
 
-  PacketAccumulator accumulator(15, false);
+  PacketAccumulator accumulator(buffer, false);
   for (const auto& byte : msg) {
     auto res = accumulator.process_byte(byte);
     if (res.error()) {

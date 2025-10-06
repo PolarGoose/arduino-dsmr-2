@@ -3,34 +3,32 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include <vector>
+#include <span>
 
 namespace arduino_dsmr_2 {
 
 // Receives unencrypted DSMR packets.
-class PacketAccumulator : NonCopyableAndNonMovable {
-  class DsmrPacketBuffer : NonCopyableAndNonMovable {
-    std::vector<char> buffer;
-    std::size_t packetSize = 0;
+class PacketAccumulator {
+  class DsmrPacketBuffer {
+    std::span<char> _buffer;
+    std::size_t _packetSize = 0;
 
   public:
-    explicit DsmrPacketBuffer(std::size_t bufferSize) : buffer(bufferSize) {}
+    explicit DsmrPacketBuffer(std::span<char> buffer) : _buffer{buffer} {}
 
-    std::string_view packet() const { return std::string_view(buffer.data(), packetSize); }
+    std::string_view packet() const { return std::string_view(_buffer.data(), _packetSize); }
 
     void add(char byte) {
-      buffer[packetSize] = byte;
-      packetSize++;
+      _buffer[_packetSize] = byte;
+      _packetSize++;
     }
 
-    bool has_space() const { return packetSize < buffer.size(); }
-
-    void reset() { packetSize = 0; }
+    bool has_space() const { return _packetSize < _buffer.size(); }
 
     uint16_t calculate_crc16() const {
       uint16_t crc = 0;
-      for (std::size_t i = 0; i < packetSize; ++i) {
-        crc ^= static_cast<uint8_t>(buffer[i]);
+      for (std::size_t i = 0; i < _packetSize; ++i) {
+        crc ^= static_cast<uint8_t>(_buffer[i]);
         for (std::size_t bit = 0; bit < 8; bit++) {
           if (crc & 1)
             crc = (crc >> 1) ^ 0xa001;
@@ -70,6 +68,7 @@ class PacketAccumulator : NonCopyableAndNonMovable {
 
   enum class State { WaitingForPacketStartSymbol, WaitingForPacketEndSymbol, WaitingForCrc };
   State _state = State::WaitingForPacketStartSymbol;
+  std::span<char> _raw_buffer;
   DsmrPacketBuffer _buf;
   CrcAccumulator _crc_accumulator;
   bool _check_crc;
@@ -97,11 +96,11 @@ public:
     auto error() const { return _error; }
   };
 
-  PacketAccumulator(size_t bufferSize, bool check_crc) : _buf(bufferSize), _check_crc(check_crc) {}
+  PacketAccumulator(std::span<char> buffer, bool check_crc) : _raw_buffer(buffer), _buf(buffer), _check_crc(check_crc) {}
 
   Result process_byte(const char byte) {
     if (!_buf.has_space()) {
-      _buf.reset();
+      _buf = DsmrPacketBuffer(_raw_buffer);
       _state = State::WaitingForPacketStartSymbol;
       if (byte != '/') {
         return Error::BufferOverflow;
@@ -109,7 +108,7 @@ public:
     }
 
     if (byte == '/') {
-      _buf.reset();
+      _buf = DsmrPacketBuffer(_raw_buffer);
       _buf.add(byte);
       const auto prev_state = _state;
       _state = State::WaitingForPacketEndSymbol;
@@ -176,6 +175,7 @@ inline const char* to_string(const PacketAccumulator::Error error) {
     return "CrcMismatch";
   }
 
+  // unreachable
   return "Unknown error";
 }
 

@@ -276,7 +276,6 @@ DEFINE_FIELD(identification, std::string, ObisId(255, 255, 255, 255, 255, 255), 
 // Version information for P1 output
 DEFINE_FIELD(p1_version, std::string, ObisId(1, 3, 0, 2, 8), StringField, 2, 2);
 DEFINE_FIELD(p1_version_be, std::string, ObisId(0, 0, 96, 1, 4), StringField, 2, 96);
-DEFINE_FIELD(p1_version_ch, std::string, ObisId(0, 0, 96, 1, 4), StringField, 2, 96);
 
 // Date-time stamp of the P1 message
 DEFINE_FIELD(timestamp, std::string, ObisId(0, 0, 1, 0, 0), TimestampField);

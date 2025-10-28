@@ -1,9 +1,9 @@
-#include "arduino-dsmr-2/fields.h"
-#include "arduino-dsmr-2/parser.h"
+#include "dsmr_parser/fields.h"
+#include "dsmr_parser/parser.h"
 #include <doctest.h>
 #include <iostream>
 
-using namespace arduino_dsmr_2;
+using namespace dsmr_parser;
 using namespace fields;
 
 struct Printer {

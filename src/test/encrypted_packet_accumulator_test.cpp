@@ -1,11 +1,11 @@
-#include "arduino-dsmr-2/encrypted_packet_accumulator.h"
+#include "dsmr_parser/encrypted_packet_accumulator.h"
 #include <doctest.h>
 #include <filesystem>
 #include <fstream>
 #include <ranges>
 #include <source_location>
 
-using namespace arduino_dsmr_2;
+using namespace dsmr_parser;
 
 template <class T, class... Vecs>
 std::vector<T> concat(const std::vector<T>& first, const Vecs&... rest) {

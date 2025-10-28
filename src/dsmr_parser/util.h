@@ -7,7 +7,7 @@
 #include <string>
 #include <utility>
 
-namespace arduino_dsmr_2 {
+namespace dsmr_parser {
 
 class NonCopyable {
 protected:

@@ -11,26 +11,26 @@ The primary goal is to make the parser independent of the Arduino framework and 
 
 # Differences from the original arduino-dsmr
 * Requires a C++20 compatible compiler.
-* [P1Reader](https://github.com/matthijskooijman/arduino-dsmr/blob/master/src/dsmr/reader.h) class is replaced with the [PacketAccumulator](https://github.com/PolarGoose/arduino-dsmr-2/blob/master/src/dsmr/packet_accumulator.h) class with a different interface to allow usage on any platform.
-* Added [EncryptedPacketAccumulator](https://github.com/PolarGoose/arduino-dsmr-2/blob/master/src/arduino-dsmr-2/encrypted_packet_accumulator.h) class to receive encrypted DSMR messages (like from "Luxembourg Smarty").
+* [P1Reader](https://github.com/matthijskooijman/arduino-dsmr/blob/master/src/dsmr/reader.h) class is replaced with the [PacketAccumulator](https://github.com/esphome-libs/arduino-dsmr/blob/master/src/dsmr/packet_accumulator.h) class with a different interface to allow usage on any platform.
+* Added [EncryptedPacketAccumulator](https://github.com/esphome-libs/arduino-dsmr/blob/master/src/dsmr_parser/encrypted_packet_accumulator.h) class to receive encrypted DSMR messages (like from "Luxembourg Smarty").
 
 # How to use
 ## General usage
-The library is header-only. Add the `src/arduino-dsmr-2` folder to your project.<br>
+The library is header-only. Add the `src/dsmr_parser` folder to your project.<br>
 Note: `encrypted_packet_accumulator.h` header depends on [Mbed TLS](https://www.trustedfirmware.org/projects/mbed-tls/) library. It is already included in the `ESP-IDF` framework and can be easily added to any other platforms.
 
 ## Usage from PlatformIO
 The library is available on the PlatformIO registry:<br>
-[PlatformIO arduino-dsmr-2](https://registry.platformio.org/libraries/polargoose/arduino-dsmr-2/installation)
+**TODO: configure deployment to PlatformIO **
 
 # Examples
 * How to use the parser
   * [minimal_parse.ino](https://github.com/matthijskooijman/arduino-dsmr/blob/master/examples/minimal_parse/minimal_parse.ino)
   * [parse.ino](https://github.com/matthijskooijman/arduino-dsmr/blob/master/examples/parse/parse.ino)
 * Complete example using PacketAccumulator
-  * [packet_accumulator_example_test.cpp](https://github.com/PolarGoose/arduino-dsmr-2/blob/master/src/test/packet_accumulator_example_test.cpp)
+  * [packet_accumulator_example_test.cpp](https://github.com/esphome-libs/arduino-dsmr/blob/master/src/test/packet_accumulator_example_test.cpp)
 * Example using EncryptedPacketAccumulator
-  * [encrypted_packet_accumulator_example_test.cpp](https://github.com/PolarGoose/arduino-dsmr-2/blob/master/src/test/encrypted_packet_accumulator_example_test.cpp)
+  * [encrypted_packet_accumulator_example_test.cpp](https://github.com/esphome-libs/arduino-dsmr/blob/master/src/test/encrypted_packet_accumulator_example_test.cpp)
 
 # History behind arduino-dsmr
 [matthijskooijman](https://github.com/matthijskooijman) is the original creator of this DSMR parser.
@@ -39,7 +39,7 @@ After that, the work on the `arduino-dsmr` parser stopped.
 Since then, some issues and unmerged pull requests have accumulated. Additionally, the dependency on the Arduino framework causes various issues for some ESP32 boards.
 This fork addresses the existing issues and makes the parser usable on any platform.
 
-## The reasons `arduino-dsmr-2` fork was created
+## The reasons `dsmr_parser` fork was created
 * Dependency on the Arduino framework limits the applicability of this parser. For example, it is not possible to use it on Linux.
 * The Arduino framework on ESP32 inflates the FW size and doesn't allow usage of the latest version of ESP-IDF.
 * Many pull requests and bug fixes needed to be integrated into the parser.

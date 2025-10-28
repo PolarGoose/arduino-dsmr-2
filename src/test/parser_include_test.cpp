@@ -1,10 +1,10 @@
 // This code tests that the parser has all necessary dependencies included in its headers.
 // We check that the code compiles.
 
-#include "arduino-dsmr-2/fields.h"
-#include "arduino-dsmr-2/parser.h"
+#include "dsmr_parser/fields.h"
+#include "dsmr_parser/parser.h"
 
-using namespace arduino_dsmr_2;
+using namespace dsmr_parser;
 using namespace fields;
 
 void P1Parser_some_function() {

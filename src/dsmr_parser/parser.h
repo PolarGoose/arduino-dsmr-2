@@ -2,7 +2,7 @@
 
 #include "util.h"
 
-namespace arduino_dsmr_2 {
+namespace dsmr_parser {
 
 // uses polynomial x^16+x^15+x^2+1
 inline uint16_t crc16_update(uint16_t crc, uint8_t data) {

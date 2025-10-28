@@ -1,9 +1,9 @@
-#include "arduino-dsmr-2/packet_accumulator.h"
+#include "dsmr_parser/packet_accumulator.h"
 #include <doctest.h>
 #include <string>
 #include <vector>
 
-using namespace arduino_dsmr_2;
+using namespace dsmr_parser;
 
 TEST_CASE("Packet with correct CRC lower case") {
   std::vector<char> buffer(1000);

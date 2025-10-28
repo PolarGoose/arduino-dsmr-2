@@ -6,7 +6,7 @@
 #include <span>
 #include <vector>
 
-namespace arduino_dsmr_2 {
+namespace dsmr_parser {
 
 // Some smart meters sent DSMR packets encrypted with AES-128-GCM.
 // The encryption is described in the "specs/Luxembourg Smarty P1 specification v1.1.3.pdf" chapter "3.2.5 P1 software – Channel security".

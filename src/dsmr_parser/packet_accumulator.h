@@ -5,7 +5,7 @@
 #include <string_view>
 #include <span>
 
-namespace arduino_dsmr_2 {
+namespace dsmr_parser {
 
 // Receives unencrypted DSMR packets.
 class PacketAccumulator {

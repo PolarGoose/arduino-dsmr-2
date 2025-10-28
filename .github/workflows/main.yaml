@@ -1,14 +1,20 @@
-on: push
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
-  build-windows-msvc:
-    runs-on: windows-2022
+  windows:
+    runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - run: ./build-win.ps1
-  build-linux:
+  linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - run: sudo apt-get install -y clang
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - run: sudo apt install -y clang
       - run: ./build-linux.sh
